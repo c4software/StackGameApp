@@ -18,7 +18,7 @@ android {
         versionCode = 1
         versionName = "1.0"
 
-        buildConfigField("String", "PURCHASE_URL", "\"https://m.youtube.com/watch?v=dQw4w9WgXcQ\"")
+        buildConfigField("String", "PURCHASE_URL", "\"https://cours.brosseau.ovh/tp/securite/reverse.html\"")
         buildConfigField("String", "API_BASE_URL", "\"https://cours.brosseau.ovh/api/\"")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
