@@ -24,4 +24,8 @@ data class User(
     fun hasRewindFeature(): Boolean {
         return level == UserLevel.ULTRA
     }
+    
+    fun isGuest(): Boolean {
+        return playerId == "guest"
+    }
 }

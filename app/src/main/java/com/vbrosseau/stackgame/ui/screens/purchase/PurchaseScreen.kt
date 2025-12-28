@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -14,7 +13,6 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -25,22 +23,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.vbrosseau.stackgame.data.BillingManager
 import com.vbrosseau.stackgame.models.UserLevel
-import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun PurchaseScreen(
     currentLevel: UserLevel,
     onBack: () -> Unit,
-    modifier: Modifier = Modifier,
-    viewModel: PurchaseViewModel = koinViewModel()
+    modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val activity = context as? Activity
-    val scrollState = rememberScrollState()
+    
+    // Determine ownership based on current level
+    val hasPremium = currentLevel >= UserLevel.PREMIUM
+    val hasUltra = currentLevel == UserLevel.ULTRA
     
     Box(
         modifier = modifier
@@ -151,13 +147,14 @@ fun PurchaseScreen(
                                     "Vies bonus",
                                     "Support du développeur"
                                 ),
-                                isOwned = uiState.purchaseState.hasPremium,
+                                isOwned = hasPremium,
                                 isCurrent = currentLevel == UserLevel.PREMIUM,
                                 onPurchase = {
-                                    activity?.let { act ->
-                                        // TODO: Get BillingManager from Koin
-                                        // billingManager.launchPurchaseFlow(act, BillingManager.PRODUCT_PREMIUM)
-                                    }
+                                    val intent = android.content.Intent(
+                                        android.content.Intent.ACTION_VIEW,
+                                        android.net.Uri.parse(com.vbrosseau.stackgame.BuildConfig.PURCHASE_URL)
+                                    )
+                                    activity?.startActivity(intent)
                                 }
                             )
                             1 -> PurchaseCard(
@@ -172,13 +169,14 @@ fun PurchaseScreen(
                                     "Badge exclusif",
                                     "Accès anticipé aux nouvelles fonctionnalités"
                                 ),
-                                isOwned = uiState.purchaseState.hasUltra,
+                                isOwned = hasUltra,
                                 isCurrent = currentLevel == UserLevel.ULTRA,
                                 onPurchase = {
-                                    activity?.let { act ->
-                                        // TODO: Get BillingManager from Koin
-                                        // billingManager.launchPurchaseFlow(act, BillingManager.PRODUCT_ULTRA)
-                                    }
+                                    val intent = android.content.Intent(
+                                        android.content.Intent.ACTION_VIEW,
+                                        android.net.Uri.parse(com.vbrosseau.stackgame.BuildConfig.PURCHASE_URL)
+                                    )
+                                    activity?.startActivity(intent)
                                 }
                             )
                         }
@@ -229,22 +227,14 @@ fun PurchaseCard(
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White.copy(alpha = 0.1f)
+            containerColor = Color.Transparent
         ),
         shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            color.copy(alpha = 0.2f),
-                            Color.Transparent
-                        )
-                    )
-                )
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {

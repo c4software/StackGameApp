@@ -18,6 +18,7 @@ android {
         versionCode = 1
         versionName = "1.0"
 
+        buildConfigField("String", "PURCHASE_URL", "\"https://m.youtube.com/watch?v=dQw4w9WgXcQ\"")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -36,6 +37,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -71,14 +73,6 @@ dependencies {
     // ViewModel
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.7.0")
-    
-    // Google Play Billing
-    implementation("com.android.billingclient:billing-ktx:6.1.0")
-    
-    // Google Play Games Services
-    implementation("com.google.android.gms:play-services-games-v2:20.0.0")
-    implementation("com.google.android.gms:play-services-auth:20.7.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
     
     // Security for encrypted preferences
     implementation("androidx.security:security-crypto:1.1.0-alpha06")

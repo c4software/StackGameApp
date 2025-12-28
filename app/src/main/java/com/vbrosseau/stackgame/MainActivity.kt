@@ -14,6 +14,8 @@ import com.vbrosseau.stackgame.models.UserLevel
 import com.vbrosseau.stackgame.ui.MainViewModel
 import com.vbrosseau.stackgame.ui.Screen
 import com.vbrosseau.stackgame.ui.screens.game.StackGame
+import com.vbrosseau.stackgame.ui.screens.login.LoginScreen
+import com.vbrosseau.stackgame.ui.screens.onboarding.OnboardingScreen
 import com.vbrosseau.stackgame.ui.screens.profile.ProfileScreen
 import com.vbrosseau.stackgame.ui.screens.purchase.PurchaseScreen
 import com.vbrosseau.stackgame.ui.components.AdBanner
@@ -44,8 +46,27 @@ fun StackGameApp(viewModel: MainViewModel) {
                 // Show nothing while loading
             }
             
+            Screen.Onboarding -> {
+                OnboardingScreen(
+                    onLoginClick = { viewModel.onLoginClick() },
+                    onGuestClick = { viewModel.onPlayAsGuest() }
+                )
+            }
+            
+            Screen.Login -> {
+                val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+                val error by viewModel.loginError.collectAsStateWithLifecycle()
+                
+                LoginScreen(
+                    onLogin = { email -> viewModel.onLogin(email) },
+                    onBack = { viewModel.onLoginBack() },
+                    isLoading = isLoading,
+                    error = error
+                )
+            }
+            
             Screen.Profile -> {
-                val user = uiState.currentUser ?: User("guest", "Joueur", UserLevel.NORMAL)
+                val user = uiState.currentUser ?: User("guest", "", UserLevel.NORMAL)
                 
                 ProfileScreen(
                     user = user,
@@ -56,7 +77,7 @@ fun StackGameApp(viewModel: MainViewModel) {
             }
             
             Screen.Purchase -> {
-                val user = uiState.currentUser ?: User("guest", "Joueur", UserLevel.NORMAL)
+                val user = uiState.currentUser ?: User("guest", "", UserLevel.NORMAL)
                 
                 PurchaseScreen(
                     currentLevel = user.level,
@@ -65,7 +86,7 @@ fun StackGameApp(viewModel: MainViewModel) {
             }
             
             Screen.Game -> {
-                val user = uiState.currentUser ?: User("guest", "Joueur", UserLevel.NORMAL)
+                val user = uiState.currentUser ?: User("guest", "", UserLevel.NORMAL)
                 
                 Scaffold(
                     modifier = Modifier
