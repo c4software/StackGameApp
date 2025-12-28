@@ -41,7 +41,7 @@ fun LoginScreen(
             ),
         contentAlignment = Alignment.Center
     ) {
-        // Back Button
+
         IconButton(
             onClick = onBack,
             modifier = Modifier
@@ -80,7 +80,7 @@ fun LoginScreen(
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 
-                // Email Input
+
                 OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
@@ -144,7 +144,7 @@ fun LoginScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Create Account Link
+
                 val context = androidx.compose.ui.platform.LocalContext.current
                 Text(
                     text = androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.login_create_account),

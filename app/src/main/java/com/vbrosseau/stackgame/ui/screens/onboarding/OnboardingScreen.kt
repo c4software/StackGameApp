@@ -49,7 +49,7 @@ fun OnboardingScreen(
                 OnboardingPage(page = page, onLoginClick = onLoginClick, onGuestClick = onGuestClick)
             }
             
-            // Indicators and Controls
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -57,7 +57,7 @@ fun OnboardingScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Page Indicators
+
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
@@ -73,7 +73,7 @@ fun OnboardingScreen(
                     }
                 }
                 
-                // Navigation Button (Next or None if last page)
+
                 if (pagerState.currentPage < 2) {
                     Button(
                         onClick = {

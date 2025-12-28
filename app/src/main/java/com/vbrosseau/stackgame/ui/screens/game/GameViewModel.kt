@@ -19,11 +19,11 @@ import kotlin.math.min
 import kotlin.math.pow
 import kotlin.random.Random
 
-// --- GameEffect, GameState, Block, Particle, GameSnapshot have been moved to separate files
+
 
 class GameViewModel : ViewModel() {
     
-    // --- STATE ---
+
     
     private val _gameState = MutableStateFlow(GameState())
     val gameState: StateFlow<GameState> = _gameState.asStateFlow()
@@ -31,7 +31,7 @@ class GameViewModel : ViewModel() {
     private val _currentBlockState = MutableStateFlow(CurrentBlockState())
     val currentBlockState: StateFlow<CurrentBlockState> = _currentBlockState.asStateFlow()
     
-    // Side effects channel
+
     private val _gameEffects = Channel<GameEffect>(Channel.BUFFERED)
     val gameEffects = _gameEffects.receiveAsFlow()
 
@@ -39,14 +39,14 @@ class GameViewModel : ViewModel() {
         val x: Float = 0f,
         val y: Float = 250f,
         val width: Float = 0f,
-        val moveSpeed: Float = 0f, // Will set in init/reset
+        val moveSpeed: Float = 0f,
         val moveDirection: Float = 1f,
         val isFalling: Boolean = false
     )
     
-    // Constants
+
     companion object {
-        const val AD_BLOCKING_DURATION = 5000L // 5 seconds
+        const val AD_BLOCKING_DURATION = 5000L
 
         const val BASE_BLOCK_HEIGHT = 40f
         const val BASE_INITIAL_SPEED = 4f
@@ -54,8 +54,8 @@ class GameViewModel : ViewModel() {
         const val PERFECT_TOLERANCE_DP = 8f
         const val BASE_GRAVITY = 0.4f
         const val BASE_FALL_SPEED = 15f
-        const val STABILITY_THRESHOLD = 0.35f // Ratio, stays same
-        const val MAX_ANGULAR_VELOCITY = 5f // Angle, stays same
+        const val STABILITY_THRESHOLD = 0.35f
+        const val MAX_ANGULAR_VELOCITY = 5f
         const val BASE_PHYSICS_GRAVITY = 0.6f
         const val ANGULAR_DAMPING = 0.98f
         
@@ -69,7 +69,7 @@ class GameViewModel : ViewModel() {
         const val MIN_BLOCK_WIDTH_RATIO = 0.25f 
     }
     
-    // Scaled values
+
     var density = 1f
         private set
         
@@ -102,16 +102,16 @@ class GameViewModel : ViewModel() {
     private var lastMilestone = 0
     private var lastLifeBonus = 0
     
-    // --- INITIALIZATION ---
+
 
     fun initGame(width: Float, height: Float, screenDensity: Float) {
-        // Only init if dimensions changed or first time
+
         if ((screenWidth != width || screenHeight != height || density != screenDensity) && width > 0f && height > 0f) {
             screenWidth = width
             screenHeight = height
             density = screenDensity
             
-            // Only reset if empty (first load)
+
             if (_gameState.value.stack.isEmpty()) {
                 resetGame()
             }
@@ -153,13 +153,13 @@ class GameViewModel : ViewModel() {
         lastLifeBonus = 0
     }
     
-    // --- GAME LOOP ---
+
 
     fun handleTap(user: User) {
         val state = _gameState.value
         if (state.isGameOver) {
             if (user.showsAds() && state.showAdOverlay) {
-                // Ad close logic handled by UI
+
                 return
             }
             resetGame()
@@ -182,7 +182,7 @@ class GameViewModel : ViewModel() {
                 it.copy(
                     stack = snapshot.stack,
                     score = snapshot.score,
-                    cameraY = 0f // Reset cam relative (simplified)
+                    cameraY = 0f
                 )
             }
             
@@ -201,27 +201,27 @@ class GameViewModel : ViewModel() {
         }
     }
     
-    // Called every frame from UI
+
     fun updateGameLoop() {
         if (screenWidth == 0f) return
         
-        // Single atomic update for all frame logic related to GameState
+
         _gameState.update { currentState ->
             var nextState = currentState
             
-            // 1. Update Particles
+
             nextState = calculateParticles(nextState)
             
-            // 2. Update Shake
+
             if (nextState.shakeTime > 0) {
                 nextState = nextState.copy(shakeTime = nextState.shakeTime - 1f)
             }
             
             if (nextState.stack.isNotEmpty() && !nextState.isGameOver) {
-                 // 3. Update Physics (Stacks)
+
                  nextState = calculatePhysics(nextState)
                  
-                 // 4. Update Camera
+
                  nextState = calculateCamera(screenHeight, nextState)
             }
             
@@ -229,7 +229,6 @@ class GameViewModel : ViewModel() {
         }
 
         // 5. Update Current Block (Separate StateFlow)
-        // We do this after GameState update so it sees the latest Physics/Camera states if needed
         val state = _gameState.value
         if (state.stack.isNotEmpty() && !state.isGameOver) {
             updateCurrentBlock()
@@ -252,7 +251,7 @@ class GameViewModel : ViewModel() {
             var newX = current.x + current.moveSpeed * current.moveDirection
             var newDir = current.moveDirection
             
-            // Bounce bounds
+
             if ((newX > screenWidth && current.moveDirection > 0) || (newX < -current.width && current.moveDirection < 0)) {
                 newDir *= -1f
             }
@@ -285,19 +284,12 @@ class GameViewModel : ViewModel() {
     }
 
     private fun calculatePhysics(state: GameState): GameState {
-        // We can't easily modify the list in place if we want to be safe, but we can reuse the logic
-        // This function needs to return the NEW state
-        
         val stack = state.stack
-        // If stack is small, cost of copy is low.
-        // We need to preserve the "base" block [0] usually
-        
-        // Logic from original updatePhysics:
         var hasUnstableBlocks = false
         var lives = state.lives
         var isGameOver = false
         
-        // We will build a new list
+
         val newStack = ArrayList<Block>(stack.size)
         if (stack.isNotEmpty()) newStack.add(stack[0])
         
@@ -328,12 +320,12 @@ class GameViewModel : ViewModel() {
                     angularVelocity = block.angularVelocity + if (block.angularVelocity > 0) 0.2f else -0.2f
                 )
                 
-                // If fallen off screen
+
                 if (newTop > screenHeight + 100) {
                     lives--
                     sendEffect(GameEffect.VibrateFail)
                     if (lives <= 0) isGameOver = true
-                    // Don't add to newStack -> Effectively removed
+
                     continue 
                 }
             }
@@ -341,7 +333,7 @@ class GameViewModel : ViewModel() {
             newStack.add(block)
         }
         
-        // Tower balance check
+
         if (!hasUnstableBlocks && newStack.size > 1 && lives > 0) {
              if (!checkTowerBalance(newStack)) {
                  isGameOver = true
@@ -356,7 +348,7 @@ class GameViewModel : ViewModel() {
         }
     }
     
-    // --- LOGIC ---
+
 
     private fun landBlock() {
         val state = _gameState.value
@@ -370,22 +362,22 @@ class GameViewModel : ViewModel() {
         val overlapWidth = overlapRight - overlapLeft
         
         if (overlapWidth <= 0) {
-            // Missed completely
+
             _gameState.update { it.copy(isGameOver = true, shakeTime = 15f) }
             sendEffect(GameEffect.VibrateFail)
         } else {
-            // Landed
+
             val score = state.score
-            // Snapshot for rewind
+
             history.add(GameSnapshot(state.stack, score, current.width, current.moveSpeed, state.cameraY))
             
             val diff = abs(landedRect.center.x - topBlock.rect.center.x)
             val isPerfect = diff < perfectTolerance
             
-            // Haptic
+
             sendEffect(if (isPerfect) GameEffect.VibrateSuccess else GameEffect.VibrateMedium)
             
-            // New Block Color
+
             val hue = (score * 5f) % 360f
             val newColor = Color.hsv(hue, 0.7f, 0.9f)
             
@@ -394,7 +386,7 @@ class GameViewModel : ViewModel() {
                 color = newColor
             )
             
-            // Stability Check
+
             var isStable = true
             var angularVel = 0f
             
@@ -408,7 +400,7 @@ class GameViewModel : ViewModel() {
             
             val finalBlock = newBlock.copy(isStable = isStable, angularVelocity = angularVel)
             
-            // Particles
+
             if (isPerfect) {
                 spawnParticles(finalBlock.rect, Color.White, 15)
             } else if (!isStable) {
@@ -423,10 +415,10 @@ class GameViewModel : ViewModel() {
             if (isStable) {
                 newScore++
                 
-                // Bonuses
+
                 if (newScore % LIFE_BONUS_INTERVAL == 0 && newScore > lastLifeBonus) {
                     lastLifeBonus = newScore
-                    if (newLives < NORMAL_MAX_LIVES) { // Should check User Level here effectively, need to pass User to logic or store level
+                    if (newLives < NORMAL_MAX_LIVES) {
                          newLives++
                          sendEffect(GameEffect.VibrateSuccess)
                     }
@@ -439,12 +431,12 @@ class GameViewModel : ViewModel() {
                 }
             }
             
-            // Scale difficulty
+
             val baseWidth = screenWidth * 0.5f
             val newWidth = calculateBlockWidth(baseWidth, newScore)
             val newSpeed = current.moveSpeed + speedIncrement
             
-            // Update State
+
             _gameState.update { 
                 it.copy(
                     score = newScore,
@@ -455,7 +447,7 @@ class GameViewModel : ViewModel() {
                 )
             }
             
-            // Reset Current Block
+
             _currentBlockState.update {
                 it.copy(
                     isFalling = false,

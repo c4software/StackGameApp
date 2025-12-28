@@ -36,7 +36,7 @@ fun PurchaseScreen(
     val context = LocalContext.current
     val activity = context as? Activity
     
-    // Determine ownership based on current level
+
     val hasPremium = currentLevel >= UserLevel.PREMIUM
     val hasUltra = currentLevel == UserLevel.ULTRA
     
@@ -52,7 +52,7 @@ fun PurchaseScreen(
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            // Header
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -75,7 +75,7 @@ fun PurchaseScreen(
                 )
             }
             
-            // Content - Horizontal Pager
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -92,7 +92,7 @@ fun PurchaseScreen(
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 
-                // Horizontal Pager for offers
+
                 val pagerState = rememberPagerState(pageCount = { 2 })
                 
                 HorizontalPager(
@@ -102,19 +102,17 @@ fun PurchaseScreen(
                         .weight(1f),
                     pageSpacing = 16.dp
                 ) { page ->
-                    // Calculate page offset for transition effects
+
                     val pageOffset = (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
                     
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .graphicsLayer {
-                                // Scale effect
                                 val scale = 1f - (kotlin.math.abs(pageOffset) * 0.1f)
                                 scaleX = scale
                                 scaleY = scale
                                 
-                                // Alpha effect
                                 alpha = 1f - (kotlin.math.abs(pageOffset) * 0.3f)
                             }
                             .background(
@@ -195,7 +193,7 @@ fun PurchaseScreen(
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 
-                // Page indicator
+
                 Row(
                     horizontalArrangement = Arrangement.Center,
                     modifier = Modifier.fillMaxWidth()
@@ -248,7 +246,7 @@ fun PurchaseCard(
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Icon
+
             Text(
                 text = icon,
                 fontSize = 64.sp
@@ -256,7 +254,7 @@ fun PurchaseCard(
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            // Title
+
             Text(
                 text = title,
                 fontSize = 28.sp,
@@ -264,7 +262,7 @@ fun PurchaseCard(
                 color = color
             )
             
-            // Price
+
             Text(
                 text = price,
                 fontSize = 36.sp,
@@ -274,7 +272,7 @@ fun PurchaseCard(
             
             Spacer(modifier = Modifier.height(24.dp))
             
-            // Features
+
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -302,7 +300,7 @@ fun PurchaseCard(
             
             Spacer(modifier = Modifier.height(24.dp))
             
-            // Purchase Button
+
             Button(
                 onClick = onPurchase,
                 modifier = Modifier

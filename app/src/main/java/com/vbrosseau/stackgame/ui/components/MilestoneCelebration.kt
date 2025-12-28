@@ -20,7 +20,7 @@ fun MilestoneCelebration(
 ) {
     var visible by remember { mutableStateOf(true) }
     
-    // Auto dismiss after delay
+
     LaunchedEffect(Unit) {
         delay(2000)
         visible = false
@@ -28,7 +28,7 @@ fun MilestoneCelebration(
         onDismiss()
     }
     
-    // Zoom and fade animation
+
     val scale by animateFloatAsState(
         targetValue = if (visible) 1.2f else 0.8f,
         animationSpec = tween(durationMillis = 400, easing = EaseOutBack),

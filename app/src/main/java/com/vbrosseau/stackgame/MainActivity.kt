@@ -43,7 +43,6 @@ fun StackGameApp(viewModel: MainViewModel) {
     StackGameTheme {
         when (uiState.currentScreen) {
             Screen.Loading -> {
-                // Show nothing while loading
             }
             
             Screen.Onboarding -> {
@@ -91,7 +90,7 @@ fun StackGameApp(viewModel: MainViewModel) {
                     currentLevel = user.level,
                     isGuest = user.isGuest(),
                     onBack = { viewModel.onProfileClick() },
-                    onLoginClick = { viewModel.onProfileClick() } // MainViewModel.onProfileClick handles guest redirection!
+                    onLoginClick = { viewModel.onProfileClick() }
                 )
             }
             
@@ -101,13 +100,13 @@ fun StackGameApp(viewModel: MainViewModel) {
                 Scaffold(
                     modifier = Modifier
                         .fillMaxSize()
-                        .windowInsetsPadding(WindowInsets(0, 0, 0, 0)), // Ignore system bars
+                        .windowInsetsPadding(WindowInsets(0, 0, 0, 0)),
                     bottomBar = {
                         if (user.showsAds()) {
                             AdBanner()
                         }
                     },
-                    contentWindowInsets = WindowInsets(0, 0, 0, 0) // No content padding
+                    contentWindowInsets = WindowInsets(0, 0, 0, 0)
                 ) { innerPadding ->
                     StackGame(
                         user = user,

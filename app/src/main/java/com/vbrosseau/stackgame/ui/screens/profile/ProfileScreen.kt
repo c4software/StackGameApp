@@ -39,7 +39,7 @@ fun ProfileScreen(
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            // Header with back button
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -62,7 +62,7 @@ fun ProfileScreen(
                 )
             }
             
-            // Content
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -70,7 +70,7 @@ fun ProfileScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                // Profile icon with glassmorphism
+
                 Card(
                     modifier = Modifier.size(120.dp),
                     colors = CardDefaults.cardColors(
@@ -100,7 +100,7 @@ fun ProfileScreen(
                 
                 Spacer(modifier = Modifier.height(32.dp))
                 
-                // User name
+
                 Text(
                     text = user.displayName,
                     fontSize = 36.sp,
@@ -110,7 +110,7 @@ fun ProfileScreen(
                 
                 Spacer(modifier = Modifier.height(40.dp))
                 
-                // Level badge with glassmorphism
+
                 Card(
                     colors = CardDefaults.cardColors(
                         containerColor = Color.White.copy(alpha = 0.15f)
@@ -148,7 +148,7 @@ fun ProfileScreen(
                 
                 Spacer(modifier = Modifier.height(40.dp))
                 
-                // Purchase button (only for NORMAL users)
+
                 if (user.level == UserLevel.NORMAL) {
                     Button(
                         onClick = onPurchaseClick,
@@ -170,7 +170,6 @@ fun ProfileScreen(
                     
                     Spacer(modifier = Modifier.height(16.dp))
                 } else {
-                    // Display features for Premium/Ultra users
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
