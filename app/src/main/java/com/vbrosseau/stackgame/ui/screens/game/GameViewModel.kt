@@ -39,22 +39,24 @@ class GameViewModel : ViewModel() {
         val x: Float = 0f,
         val y: Float = 250f,
         val width: Float = 0f,
-        val moveSpeed: Float = INITIAL_SPEED,
+        val moveSpeed: Float = 0f, // Will set in init/reset
         val moveDirection: Float = 1f,
         val isFalling: Boolean = false
     )
     
     // Constants
     companion object {
-        const val BLOCK_HEIGHT = 80f
-        const val INITIAL_SPEED = 8f
-        const val SPEED_INCREMENT = 0.3f
-        const val PERFECT_TOLERANCE = 20f
-        const val GRAVITY = 0.8f
-        const val FALL_SPEED = 30f
-        const val STABILITY_THRESHOLD = 0.35f
-        const val MAX_ANGULAR_VELOCITY = 5f
-        const val PHYSICS_GRAVITY = 1.2f
+        const val AD_BLOCKING_DURATION = 5000L // 5 seconds
+
+        const val BASE_BLOCK_HEIGHT = 40f
+        const val BASE_INITIAL_SPEED = 4f
+        const val BASE_SPEED_INCREMENT = 0.15f
+        const val PERFECT_TOLERANCE_DP = 8f
+        const val BASE_GRAVITY = 0.4f
+        const val BASE_FALL_SPEED = 15f
+        const val STABILITY_THRESHOLD = 0.35f // Ratio, stays same
+        const val MAX_ANGULAR_VELOCITY = 5f // Angle, stays same
+        const val BASE_PHYSICS_GRAVITY = 0.6f
         const val ANGULAR_DAMPING = 0.98f
         
         const val INITIAL_LIVES = 3
@@ -64,8 +66,34 @@ class GameViewModel : ViewModel() {
         const val LIFE_BONUS_INTERVAL = 20
         const val DIFFICULTY_INTERVAL = 10
         const val SIZE_REDUCTION_FACTOR = 0.90f
-        const val MIN_BLOCK_WIDTH_RATIO = 0.25f
+        const val MIN_BLOCK_WIDTH_RATIO = 0.25f 
     }
+    
+    // Scaled values
+    var density = 1f
+        private set
+        
+    val blockHeight: Float
+        get() = BASE_BLOCK_HEIGHT * density
+        
+    private val initialSpeed: Float
+        get() = BASE_INITIAL_SPEED * density
+        
+    private val speedIncrement: Float
+        get() = BASE_SPEED_INCREMENT * density
+        
+    private val perfectTolerance: Float
+        get() = PERFECT_TOLERANCE_DP * density
+        
+    private val gravity: Float
+        get() = BASE_GRAVITY * density
+        
+    private val fallSpeed: Float
+        get() = BASE_FALL_SPEED * density
+        
+    private val physicsGravity: Float
+        get() = BASE_PHYSICS_GRAVITY * density
+
     
     private var screenWidth = 0f
     private var screenHeight = 0f
@@ -76,11 +104,13 @@ class GameViewModel : ViewModel() {
     
     // --- INITIALIZATION ---
 
-    fun initGame(width: Float, height: Float) {
+    fun initGame(width: Float, height: Float, screenDensity: Float) {
         // Only init if dimensions changed or first time
-        if ((screenWidth != width || screenHeight != height) && width > 0f && height > 0f) {
+        if ((screenWidth != width || screenHeight != height || density != screenDensity) && width > 0f && height > 0f) {
             screenWidth = width
             screenHeight = height
+            density = screenDensity
+            
             // Only reset if empty (first load)
             if (_gameState.value.stack.isEmpty()) {
                 resetGame()
@@ -95,7 +125,7 @@ class GameViewModel : ViewModel() {
         val initialBlock = Block(
             rect = Rect(
                 left = (screenWidth - initialWidth) / 2, 
-                top = screenHeight - BLOCK_HEIGHT, 
+                top = screenHeight - blockHeight, 
                 right = (screenWidth - initialWidth) / 2 + initialWidth, 
                 bottom = screenHeight
             ),
@@ -113,7 +143,7 @@ class GameViewModel : ViewModel() {
             x = -initialWidth,
             y = 250f,
             width = initialWidth,
-            moveSpeed = INITIAL_SPEED,
+            moveSpeed = initialSpeed,
             moveDirection = 1f,
             isFalling = false
         )
@@ -202,7 +232,7 @@ class GameViewModel : ViewModel() {
         val current = _currentBlockState.value
         
         if (current.isFalling) {
-            val newY = current.y + FALL_SPEED
+            val newY = current.y + fallSpeed
             _currentBlockState.update { it.copy(y = newY) }
             
             val topBlock = _gameState.value.stack.last()
@@ -218,7 +248,7 @@ class GameViewModel : ViewModel() {
             // Visual position of top block top: topBlock.rect.top + cameraY
             // Visual position of current block bottom: current.y + BLOCK_HEIGHT
             
-            if (newY + BLOCK_HEIGHT >= topBlock.rect.top + _gameState.value.cameraY) {
+            if (newY + blockHeight >= topBlock.rect.top + _gameState.value.cameraY) {
                 landBlock()
             }
         } else {
@@ -264,9 +294,9 @@ class GameViewModel : ViewModel() {
             }
             
             if (block.isFalling) {
-                val newVelY = block.velocityY + PHYSICS_GRAVITY
+                val newVelY = block.velocityY + physicsGravity
                 val newTop = block.rect.top + newVelY
-                val newRect = block.rect.copy(top = newTop, bottom = newTop + BLOCK_HEIGHT)
+                val newRect = block.rect.copy(top = newTop, bottom = newTop + blockHeight)
                  
                 block = block.copy(
                     rect = newRect,
@@ -321,7 +351,7 @@ class GameViewModel : ViewModel() {
          val living = _gameState.value.particles.mapNotNull { p ->
              p.x += p.vx
              p.y += p.vy
-             p.vy += GRAVITY
+             p.vy += gravity
              p.life -= 0.02f
              if (p.life > 0) p else null
          }
@@ -335,7 +365,7 @@ class GameViewModel : ViewModel() {
         val current = _currentBlockState.value
         val topBlock = state.stack.last()
         
-        val landedRect = Rect(current.x, topBlock.rect.top - BLOCK_HEIGHT, current.x + current.width, topBlock.rect.top)
+        val landedRect = Rect(current.x, topBlock.rect.top - blockHeight, current.x + current.width, topBlock.rect.top)
         
         val overlapLeft = max(topBlock.rect.left, landedRect.left)
         val overlapRight = min(topBlock.rect.right, landedRect.right)
@@ -352,7 +382,7 @@ class GameViewModel : ViewModel() {
             history.add(GameSnapshot(state.stack, score, current.width, current.moveSpeed, state.cameraY))
             
             val diff = abs(landedRect.center.x - topBlock.rect.center.x)
-            val isPerfect = diff < PERFECT_TOLERANCE
+            val isPerfect = diff < perfectTolerance
             
             // Haptic
             sendEffect(if (isPerfect) GameEffect.VibrateSuccess else GameEffect.VibrateMedium)
@@ -414,7 +444,7 @@ class GameViewModel : ViewModel() {
             // Scale difficulty
             val baseWidth = screenWidth * 0.5f
             val newWidth = calculateBlockWidth(baseWidth, newScore)
-            val newSpeed = current.moveSpeed + SPEED_INCREMENT
+            val newSpeed = current.moveSpeed + speedIncrement
             
             // Update State
             _gameState.update { 

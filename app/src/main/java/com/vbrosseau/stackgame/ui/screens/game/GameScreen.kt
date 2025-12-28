@@ -46,6 +46,7 @@ fun StackGame(
     viewModel: GameViewModel = koinViewModel()
 ) {
     val view = LocalView.current
+    val density = androidx.compose.ui.platform.LocalDensity.current.density
     
     // --- STATE OBSERVATION ---
     val gameState by viewModel.gameState.collectAsStateWithLifecycle()
@@ -95,7 +96,7 @@ fun StackGame(
                 }
         ) {
             // Init Game Dimensions
-            viewModel.initGame(size.width, size.height)
+            viewModel.initGame(size.width, size.height, density)
             if (size.width == 0f) return@Canvas
 
             // Background
@@ -155,8 +156,8 @@ fun StackGame(
                         // Windows
                         val windowCount = (block.rect.width / 35f).toInt()
                         if (windowCount > 0) {
-                            val windowHeight = GameViewModel.BLOCK_HEIGHT * 0.5f
-                            val windowY = block.rect.top + (GameViewModel.BLOCK_HEIGHT - windowHeight) / 2
+                            val windowHeight = viewModel.blockHeight * 0.5f
+                            val windowY = block.rect.top + (viewModel.blockHeight - windowHeight) / 2
                             val totalGapsWidth = block.rect.width * 0.3f
                             val gapWidth = totalGapsWidth / (windowCount + 1)
                             val windowWidth = (block.rect.width - totalGapsWidth) / windowCount
@@ -193,8 +194,8 @@ fun StackGame(
                         if (shadowAlpha > 0f) {
                             drawRect(
                                 color = Color.Black.copy(alpha = shadowAlpha),
-                                topLeft = Offset(currentBlock.x, gameState.stack.last().rect.top - GameViewModel.BLOCK_HEIGHT),
-                                size = Size(currentBlock.width, GameViewModel.BLOCK_HEIGHT)
+                                topLeft = Offset(currentBlock.x, gameState.stack.last().rect.top - viewModel.blockHeight),
+                                size = Size(currentBlock.width, viewModel.blockHeight)
                             )
                         }
                     }
@@ -222,7 +223,7 @@ fun StackGame(
                     drawRect(
                         color = Color.Red.copy(alpha = 0.9f),
                         topLeft = Offset(currentBlock.x, currentBlock.y),
-                        size = Size(currentBlock.width, GameViewModel.BLOCK_HEIGHT)
+                        size = Size(currentBlock.width, viewModel.blockHeight)
                     )
                 }
             }
@@ -235,7 +236,7 @@ fun StackGame(
                         textSize = 50f
                         textAlign = android.graphics.Paint.Align.CENTER
                     }
-                    val context = LocalView.current.context
+                    val context = view.context
                     val gameOverText = context.getString(com.vbrosseau.stackgame.R.string.game_over, user.displayName)
                     drawText(gameOverText, size.width / 2, size.height / 2 - 40f, subPaint)
                     drawText(context.getString(com.vbrosseau.stackgame.R.string.tap_to_restart), size.width / 2, size.height / 2 + 20f, subPaint)

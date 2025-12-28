@@ -26,7 +26,6 @@ import androidx.compose.ui.unit.sp
 import com.vbrosseau.stackgame.models.UserLevel
 
 @Composable
-@Composable
 fun PurchaseScreen(
     currentLevel: UserLevel,
     isGuest: Boolean,
