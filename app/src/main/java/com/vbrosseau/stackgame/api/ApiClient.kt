@@ -26,9 +26,13 @@ class ApiClient {
         }
     }
     
+    companion object {
+        private const val BASE_URL = "https://cours.brosseau.ovh/api"
+    }
+    
     suspend fun login(email: String): Result<User> {
         return try {
-            val url = "https://cours.brosseau.ovh/api/$email.json"
+            val url = "$BASE_URL/$email.json"
             val response = client.get(url)
             
             if (response.status.value == 404) {

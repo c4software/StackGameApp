@@ -128,7 +128,11 @@ fun ProfileScreen(
                             )
                     ) {
                         Text(
-                            text = user.level.name,
+                            text = when (user.level) {
+                                UserLevel.NORMAL -> androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.level_normal)
+                                UserLevel.PREMIUM -> androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.level_premium)
+                                UserLevel.ULTRA -> androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.level_ultra)
+                            },
                             fontSize = 24.sp,
                             fontWeight = FontWeight.Bold,
                             color = when (user.level) {

@@ -24,6 +24,9 @@
     <string name="profile_title">Profil</string>
     <string name="profile_purchase_btn">⭐ Passer Premium</string>
     <string name="profile_back_desc">Retour</string>
+    <string name="level_normal">Normal</string>
+    <string name="level_premium">Premium</string>
+    <string name="level_ultra">Ultra</string>
 
     <!-- Purchase -->
     <string name="purchase_title">Acheter Premium</string>

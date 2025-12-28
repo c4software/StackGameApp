@@ -26,9 +26,12 @@ import androidx.compose.ui.unit.sp
 import com.vbrosseau.stackgame.models.UserLevel
 
 @Composable
+@Composable
 fun PurchaseScreen(
     currentLevel: UserLevel,
+    isGuest: Boolean,
     onBack: () -> Unit,
+    onLoginClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -150,11 +153,15 @@ fun PurchaseScreen(
                                 isOwned = hasPremium,
                                 isCurrent = currentLevel == UserLevel.PREMIUM,
                                 onPurchase = {
-                                    val intent = android.content.Intent(
-                                        android.content.Intent.ACTION_VIEW,
-                                        android.net.Uri.parse(com.vbrosseau.stackgame.BuildConfig.PURCHASE_URL)
-                                    )
-                                    activity?.startActivity(intent)
+                                    if (isGuest) {
+                                        onLoginClick()
+                                    } else {
+                                        val intent = android.content.Intent(
+                                            android.content.Intent.ACTION_VIEW,
+                                            android.net.Uri.parse(com.vbrosseau.stackgame.BuildConfig.PURCHASE_URL)
+                                        )
+                                        activity?.startActivity(intent)
+                                    }
                                 }
                             )
                             1 -> PurchaseCard(
@@ -172,11 +179,15 @@ fun PurchaseScreen(
                                 isOwned = hasUltra,
                                 isCurrent = currentLevel == UserLevel.ULTRA,
                                 onPurchase = {
-                                    val intent = android.content.Intent(
-                                        android.content.Intent.ACTION_VIEW,
-                                        android.net.Uri.parse(com.vbrosseau.stackgame.BuildConfig.PURCHASE_URL)
-                                    )
-                                    activity?.startActivity(intent)
+                                    if (isGuest) {
+                                        onLoginClick()
+                                    } else {
+                                        val intent = android.content.Intent(
+                                            android.content.Intent.ACTION_VIEW,
+                                            android.net.Uri.parse(com.vbrosseau.stackgame.BuildConfig.PURCHASE_URL)
+                                        )
+                                        activity?.startActivity(intent)
+                                    }
                                 }
                             )
                         }

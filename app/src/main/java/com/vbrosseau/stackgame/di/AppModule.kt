@@ -16,4 +16,5 @@ val appModule = module {
     // ViewModels
     viewModel { MainViewModel(get(), get()) }
     viewModel { ProfileViewModel(get()) }
+    viewModel { com.vbrosseau.stackgame.ui.screens.game.GameViewModel() }
 }

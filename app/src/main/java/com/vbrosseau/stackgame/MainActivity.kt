@@ -57,11 +57,19 @@ fun StackGameApp(viewModel: MainViewModel) {
                 val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
                 val error by viewModel.loginError.collectAsStateWithLifecycle()
                 
+                val errorMessage = when(val err = error) {
+                    is com.vbrosseau.stackgame.ui.LoginError.UserNotFound -> androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.error_user_not_found)
+                    is com.vbrosseau.stackgame.ui.LoginError.NoInternet -> androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.error_no_internet)
+                    is com.vbrosseau.stackgame.ui.LoginError.ServerError -> androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.error_server_down)
+                    is com.vbrosseau.stackgame.ui.LoginError.Unknown -> androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.error_unknown_prefix, err.message)
+                    null -> null
+                }
+                
                 LoginScreen(
                     onLogin = { email -> viewModel.onLogin(email) },
                     onBack = { viewModel.onLoginBack() },
                     isLoading = isLoading,
-                    error = error
+                    error = errorMessage
                 )
             }
             
@@ -81,7 +89,9 @@ fun StackGameApp(viewModel: MainViewModel) {
                 
                 PurchaseScreen(
                     currentLevel = user.level,
-                    onBack = { viewModel.onProfileClick() }
+                    isGuest = user.isGuest(),
+                    onBack = { viewModel.onProfileClick() },
+                    onLoginClick = { viewModel.onProfileClick() } // MainViewModel.onProfileClick handles guest redirection!
                 )
             }
             

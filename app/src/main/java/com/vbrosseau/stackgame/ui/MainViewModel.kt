@@ -20,6 +20,13 @@ sealed class Screen {
     data object Login : Screen()
 }
 
+sealed class LoginError {
+    data object UserNotFound : LoginError()
+    data object NoInternet : LoginError()
+    data object ServerError : LoginError()
+    data class Unknown(val message: String) : LoginError()
+}
+
 data class MainUiState(
     val currentScreen: Screen = Screen.Loading,
     val currentUser: User? = null
@@ -33,8 +40,8 @@ class MainViewModel(
     private val _uiState = MutableStateFlow(MainUiState())
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
     
-    private val _loginError = MutableStateFlow<String?>(null)
-    val loginError: StateFlow<String?> = _loginError.asStateFlow()
+    private val _loginError = MutableStateFlow<LoginError?>(null)
+    val loginError: StateFlow<LoginError?> = _loginError.asStateFlow()
     
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -95,10 +102,14 @@ class MainViewModel(
             } else {
                 val exception = result.exceptionOrNull()
                 _loginError.value = when {
-                    exception?.message?.contains("Utilisateur non trouvé") == true -> "Utilisateur non trouvé"
-                    exception is java.net.UnknownHostException -> "Pas de connexion internet"
-                    exception is java.net.ConnectException -> "Serveur inaccessible"
-                    else -> "Erreur: ${exception?.message ?: "Inconnue"}"
+                    exception?.message?.contains("Utilisateur non trouvé") == true -> 
+                        LoginError.UserNotFound
+                    exception is java.net.UnknownHostException -> 
+                        LoginError.NoInternet
+                    exception is java.net.ConnectException -> 
+                        LoginError.ServerError
+                    else -> 
+                        LoginError.Unknown(exception?.message ?: "Inconnue")
                 }
             }
             

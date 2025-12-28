@@ -21,6 +21,7 @@ import kotlin.random.Random
 
 @Composable
 fun GameOverAdOverlay(
+    isGuest: Boolean,
     canClose: Boolean = true,
     timeRemaining: Int = 0,
     onDismiss: () -> Unit,
@@ -74,59 +75,54 @@ fun GameOverAdOverlay(
                         UltraAdContent()
                     }
                     
-                    Spacer(modifier = Modifier.height(24.dp))
-                    
-                    // Ad message
-                    Text(
-                        text = "Publicité - Passez à PREMIUM pour la retirer",
-                        fontSize = 16.sp,
-                        color = Color.White.copy(alpha = 0.9f),
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(horizontal = 32.dp)
-                    )
-                    
-                    Spacer(modifier = Modifier.height(24.dp))
-                    
-                    // Purchase button
-                    Button(
-                        onClick = onPurchaseClick,
-                        modifier = Modifier
-                            .fillMaxWidth(0.8f)
-                            .height(56.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFFFD700).copy(alpha = 0.9f)
-                        ),
-                        shape = RoundedCornerShape(16.dp)
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
+                    if (!isGuest) {
+                        Spacer(modifier = Modifier.height(24.dp))
+                        
+                        // Ad message
+                        Text(
+                            text = androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.ad_remove_message),
+                            fontSize = 16.sp,
+                            color = Color.White.copy(alpha = 0.9f),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(horizontal = 32.dp)
+                        )
+                        
+                        Spacer(modifier = Modifier.height(24.dp))
+                        
+                        // Purchase button
+                        Button(
+                            onClick = onPurchaseClick,
+                            modifier = Modifier
+                                .fillMaxWidth(0.8f)
+                                .height(56.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFFFFD700).copy(alpha = 0.9f)
+                            ),
+                            shape = RoundedCornerShape(16.dp)
                         ) {
-                            Text(
-                                text = "⭐",
-                                fontSize = 24.sp
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Passer Premium - 1€",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
+                            Row(
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "⭐",
+                                    fontSize = 24.sp
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.ad_buy_premium_btn),
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                            }
                         }
                     }
                     
                     Spacer(modifier = Modifier.height(16.dp))
                     
-                    // Timer or close button
-                    if (!canClose && timeRemaining > 0) {
-                        Text(
-                            text = "Fermeture dans $timeRemaining secondes...",
-                            fontSize = 14.sp,
-                            color = Color.White.copy(alpha = 0.8f),
-                            fontWeight = FontWeight.Medium
-                        )
-                    } else {
+                    // Close button bottom ("Maybe later")
+                    if (canClose) {
                         Button(
                             onClick = onDismiss,
                             modifier = Modifier
@@ -138,7 +134,7 @@ fun GameOverAdOverlay(
                             shape = RoundedCornerShape(12.dp)
                         ) {
                             Text(
-                                text = "Peut-être plus tard",
+                                text = androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.ad_close_now),
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -146,20 +142,29 @@ fun GameOverAdOverlay(
                     }
                 }
                 
-                // Close button (only enabled after timer)
-                if (canClose) {
-                    IconButton(
-                        onClick = onDismiss,
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(8.dp)
-                            .size(40.dp)
-                            .background(Color.Black.copy(alpha = 0.3f), CircleShape)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Fermer",
-                            tint = Color.White
+                // Top-right Timer or Close Button
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp)
+                        .size(40.dp)
+                        .background(Color.Black.copy(alpha = 0.3f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (canClose) {
+                        IconButton(onClick = onDismiss) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.ad_close_desc),
+                                tint = Color.White
+                            )
+                        }
+                    } else if (timeRemaining > 0) {
+                        Text(
+                            text = timeRemaining.toString(),
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp
                         )
                     }
                 }

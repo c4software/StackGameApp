@@ -24,6 +24,9 @@
     <string name="profile_title">Profile</string>
     <string name="profile_purchase_btn">⭐ Go Premium</string>
     <string name="profile_back_desc">Back</string>
+    <string name="level_normal">Normal</string>
+    <string name="level_premium">Premium</string>
+    <string name="level_ultra">Ultra</string>
 
     <!-- Purchase -->
     <string name="purchase_title">Buy Premium</string>
