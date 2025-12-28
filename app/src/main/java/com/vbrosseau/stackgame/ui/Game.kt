@@ -22,7 +22,12 @@ import kotlin.random.Random
 
 data class Block(
     val rect: Rect,
-    val color: Color
+    val color: Color,
+    var rotation: Float = 0f, // Rotation in degrees
+    var angularVelocity: Float = 0f, // Rotation speed
+    var velocityY: Float = 0f, // Vertical velocity for falling
+    var isStable: Boolean = true, // Whether the block is in stable equilibrium
+    var isFalling: Boolean = false // Whether the block is currently falling
 )
 
 data class Particle(
@@ -59,6 +64,12 @@ const val SPEED_INCREMENT = 0.3f
 const val PERFECT_TOLERANCE = 20f
 const val GRAVITY = 0.8f
 const val FALL_SPEED = 30f // How fast the block falls after tap
+const val STABILITY_THRESHOLD = 0.35f // Percentage of overhang before instability (35%)
+const val MAX_ANGULAR_VELOCITY = 5f // Maximum rotation speed
+const val PHYSICS_GRAVITY = 1.2f // Gravity for physics simulation
+const val ANGULAR_DAMPING = 0.98f // Damping for rotation
+const val INITIAL_LIVES = 3 // Number of lives at game start
+
 
 @Composable
 fun StackGame(modifier: Modifier = Modifier) {
@@ -69,6 +80,7 @@ fun StackGame(modifier: Modifier = Modifier) {
 
     var isGameOver by remember { mutableStateOf(false) }
     var score by remember { mutableIntStateOf(0) }
+    var lives by remember { mutableIntStateOf(INITIAL_LIVES) }
     var stack by remember { mutableStateOf(listOf<Block>()) }
     var particles by remember { mutableStateOf(listOf<Particle>()) }
 
@@ -98,6 +110,7 @@ fun StackGame(modifier: Modifier = Modifier) {
         currentBlockWidth = initialWidth
         moveSpeed = INITIAL_SPEED
         score = 0
+        lives = INITIAL_LIVES
         isGameOver = false
         cameraY = 0f
         shakeTime = 0f
@@ -147,6 +160,48 @@ fun StackGame(modifier: Modifier = Modifier) {
         }
     }
 
+    // Check if a block is stable on top of another block
+    fun checkBlockStability(topBlock: Block, bottomBlock: Block): Boolean {
+        val overlapLeft = max(topBlock.rect.left, bottomBlock.rect.left)
+        val overlapRight = min(topBlock.rect.right, bottomBlock.rect.right)
+        val overlapWidth = overlapRight - overlapLeft
+        
+        if (overlapWidth <= 0) return false
+        
+        // Calculate center of mass of top block
+        val topBlockCenter = topBlock.rect.center.x
+        
+        // Check if center of mass is within the support area
+        val overhangLeft = max(0f, bottomBlock.rect.left - topBlock.rect.left)
+        val overhangRight = max(0f, topBlock.rect.right - bottomBlock.rect.right)
+        val maxOverhang = max(overhangLeft, overhangRight)
+        
+        // Block is unstable if overhang exceeds threshold
+        return maxOverhang < topBlock.rect.width * STABILITY_THRESHOLD
+    }
+
+    // Check if the entire tower is balanced
+    fun checkTowerBalance(): Boolean {
+        if (stack.size < 2) return true
+        
+        // Calculate center of mass of entire tower
+        var totalMass = 0f
+        var weightedX = 0f
+        
+        stack.forEach { block ->
+            val mass = block.rect.width
+            totalMass += mass
+            weightedX += block.rect.center.x * mass
+        }
+        
+        val centerOfMass = weightedX / totalMass
+        val baseBlock = stack.first()
+        
+        // Tower is balanced if center of mass is within base
+        return centerOfMass >= baseBlock.rect.left && centerOfMass <= baseBlock.rect.right
+    }
+
+
     landBlock = {
         val topBlock = stack.last()
         val landedRect = Rect(currentBlockX, topBlock.rect.top - BLOCK_HEIGHT, currentBlockX + currentBlockWidth, topBlock.rect.top)
@@ -155,7 +210,9 @@ fun StackGame(modifier: Modifier = Modifier) {
         val overlapRight = min(topBlock.rect.right, landedRect.right)
         val overlapWidth = overlapRight - overlapLeft
 
+        // Check if there's any overlap at all
         if (overlapWidth <= 0) {
+            // No overlap - block falls completely
             isGameOver = true
             shakeTime = 15f
             view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY_RELEASE)
@@ -164,9 +221,6 @@ fun StackGame(modifier: Modifier = Modifier) {
 
             val diff = abs(landedRect.center.x - topBlock.rect.center.x)
             val isPerfect = diff < PERFECT_TOLERANCE
-
-            val newWidth = if (isPerfect) topBlock.rect.width else overlapWidth
-            val newX = if (isPerfect) topBlock.rect.left else overlapLeft
 
             if (isPerfect) {
                 view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_PRESS)
@@ -177,22 +231,40 @@ fun StackGame(modifier: Modifier = Modifier) {
             val hue = (score * 5f) % 360f
             val newColor = Color.hsv(hue, 0.7f, 0.9f)
 
-            val newBlock = Block(Rect(newX, landedRect.top, newX + newWidth, landedRect.bottom), newColor)
+            // Create new block with full width (no cutting)
+            val newBlock = Block(
+                rect = landedRect,
+                color = newColor,
+                rotation = 0f,
+                angularVelocity = 0f,
+                velocityY = 0f,
+                isStable = true,
+                isFalling = false
+            )
+            
+            // Check stability of the new block
+            val isStable = checkBlockStability(newBlock, topBlock)
+            newBlock.isStable = isStable
+            
+            if (!isStable) {
+                // Calculate initial angular velocity based on overhang
+                val overhangLeft = max(0f, topBlock.rect.left - landedRect.left)
+                val overhangRight = max(0f, landedRect.right - topBlock.rect.right)
+                val direction = if (overhangLeft > overhangRight) -1f else 1f
+                newBlock.angularVelocity = direction * (max(overhangLeft, overhangRight) / landedRect.width) * MAX_ANGULAR_VELOCITY
+            }
+            
             stack = stack + newBlock
 
-            if (!isPerfect) {
-                val wasteRect = if (landedRect.center.x < topBlock.rect.center.x) {
-                    Rect(landedRect.left, landedRect.top, overlapLeft, landedRect.bottom)
-                } else {
-                    Rect(overlapRight, landedRect.top, landedRect.right, landedRect.bottom)
-                }
-                spawnParticles(wasteRect, newColor.copy(alpha = 0.5f), 5)
-            } else {
+            if (isPerfect) {
                 spawnParticles(newBlock.rect, Color.White, 15)
+            } else if (!isStable) {
+                // Spawn particles to indicate instability
+                spawnParticles(newBlock.rect, newColor.copy(alpha = 0.3f), 8)
             }
 
             score++
-            currentBlockWidth = newWidth
+            currentBlockWidth = landedRect.width
             moveSpeed += SPEED_INCREMENT
 
             isBlockFalling = false
@@ -201,6 +273,7 @@ fun StackGame(modifier: Modifier = Modifier) {
             moveDirection = if (score % 2 == 0) 1f else -1f
         }
     }
+
 
     fun handleTap() {
         if (isGameOver) {
@@ -236,10 +309,76 @@ fun StackGame(modifier: Modifier = Modifier) {
                         }
                     }
 
+                    // Physics simulation for unstable blocks
+                    val updatedStack = stack.toMutableList()
+                    var hasUnstableBlocks = false
+                    
+                    for (i in 1 until updatedStack.size) {
+                        val block = updatedStack[i]
+                        
+                        if (!block.isStable && !block.isFalling) {
+                            hasUnstableBlocks = true
+                            
+                            // Update rotation
+                            block.rotation += block.angularVelocity
+                            block.angularVelocity *= ANGULAR_DAMPING
+                            
+                            // Check if block should start falling
+                            if (abs(block.rotation) > 15f) {
+                                block.isFalling = true
+                                block.velocityY = 0f
+                            }
+                        }
+                        
+                        if (block.isFalling) {
+                            // Apply gravity
+                            block.velocityY += PHYSICS_GRAVITY
+                            
+                            // Update position (create new rect with updated position)
+                            val newTop = block.rect.top + block.velocityY
+                            val newRect = Rect(
+                                block.rect.left,
+                                newTop,
+                                block.rect.right,
+                                newTop + BLOCK_HEIGHT
+                            )
+                            updatedStack[i] = block.copy(rect = newRect)
+                            
+                            // Update rotation
+                            block.rotation += block.angularVelocity
+                            block.angularVelocity += if (block.angularVelocity > 0) 0.2f else -0.2f
+                            
+                            // Remove block if it falls off screen
+                            if (newTop > screenHeight + 100) {
+                                updatedStack.removeAt(i)
+                                lives--
+                                view.performHapticFeedback(HapticFeedbackConstants.REJECT)
+                                
+                                // Check if game over due to no lives
+                                if (lives <= 0) {
+                                    isGameOver = true
+                                    shakeTime = 15f
+                                }
+                                break
+                            }
+                        }
+                    }
+                    
+                    stack = updatedStack
+                    
+                    // Check tower balance for game over (only if still have lives)
+                    if (!hasUnstableBlocks && stack.size > 1 && lives > 0) {
+                        if (!checkTowerBalance()) {
+                            isGameOver = true
+                            shakeTime = 15f
+                            view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY_RELEASE)
+                        }
+                    }
+
                     val topBlockY = stack.last().rect.top
-                    // Keep the top of the stack around 60% of the screen, but ensure the camera
-                    // doesn't push the base of the stack below the bottom of the screen.
-                    val targetCamY = (screenHeight * 0.6f - topBlockY).coerceAtMost(0f)
+                    // Keep the top of the stack around 60% of the screen
+                    // Allow camera to scroll infinitely upward for unlimited tower height
+                    val targetCamY = screenHeight * 0.6f - topBlockY
                     cameraY += (targetCamY - cameraY) * 0.1f
                 }
 
@@ -298,11 +437,25 @@ fun StackGame(modifier: Modifier = Modifier) {
 
             translate(left = 0f, top = cameraY) {
                 stack.forEach { block ->
+                    // Save canvas state and apply rotation if needed
+                    if (block.rotation != 0f) {
+                        val centerX = block.rect.center.x
+                        val centerY = block.rect.center.y
+                        
+                        drawContext.canvas.save()
+                        drawContext.canvas.translate(centerX, centerY)
+                        drawContext.canvas.rotate(block.rotation)
+                        drawContext.canvas.translate(-centerX, -centerY)
+                    }
+                    
+                    // Draw main block
                     drawRect(
                         color = block.color,
                         topLeft = Offset(block.rect.left, block.rect.top),
                         size = Size(block.rect.width, block.rect.height)
                     )
+                    
+                    // Draw highlight
                     drawRect(
                         color = Color.White.copy(alpha = 0.2f),
                         topLeft = Offset(block.rect.left, block.rect.top),
@@ -329,6 +482,20 @@ fun StackGame(modifier: Modifier = Modifier) {
                                 size = Size(windowWidth, windowHeight)
                             )
                         }
+                    }
+                    
+                    // Visual indicator for unstable blocks
+                    if (!block.isStable && !block.isFalling) {
+                        drawRect(
+                            color = Color.Red.copy(alpha = 0.15f),
+                            topLeft = Offset(block.rect.left, block.rect.top),
+                            size = Size(block.rect.width, block.rect.height)
+                        )
+                    }
+                    
+                    // Restore canvas state if we rotated
+                    if (block.rotation != 0f) {
+                        drawContext.canvas.restore()
                     }
                 }
 
@@ -371,6 +538,18 @@ fun StackGame(modifier: Modifier = Modifier) {
                 setShadowLayer(10f, 0f, 0f, android.graphics.Color.BLACK)
             }
             drawText(score.toString(), size.width / 2, 150f, textPaint)
+
+            // Draw lives as hearts in top right
+            val heartPaint = android.graphics.Paint().apply {
+                color = android.graphics.Color.RED
+                textSize = 60f
+                textAlign = android.graphics.Paint.Align.RIGHT
+                typeface = android.graphics.Typeface.DEFAULT_BOLD
+                setShadowLayer(8f, 0f, 0f, android.graphics.Color.BLACK)
+            }
+            
+            val livesText = "❤".repeat(lives.coerceAtLeast(0))
+            drawText(livesText, size.width - 40f, 100f, heartPaint)
 
             if (isGameOver) {
                 val subPaint = android.graphics.Paint().apply {
