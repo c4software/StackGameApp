@@ -28,6 +28,9 @@
     <string name="level_premium">Premium</string>
     <string name="level_ultra">Ultra</string>
 
+    <string name="profile_logout_btn">Logout</string>
+    <string name="profile_features_title">Your Benefits:</string>
+
     <!-- Purchase -->
     <string name="purchase_title">Buy Premium</string>
     <string name="purchase_header">Enhance your Experience</string>
@@ -66,8 +69,7 @@
     <string name="ad_feature_ultimate">✓ Ultimate Experience</string>
     <string name="game_over">Game Over, %1$s!</string>
     <string name="tap_to_restart">TAP TO RESTART</string>
-    <string name="long_press_rewind">LONG PRESS TO REWIND</string>
-    
+
     <!-- ViewModel Errors -->
     <string name="error_user_not_found">User not found</string>
     <string name="error_no_internet">No internet connection</string>

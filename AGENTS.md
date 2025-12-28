@@ -199,3 +199,7 @@ This document is meant to:
 - Guide debugging and refactoring
 - Prevent architectural drift
 - Ensure long-term maintainability
+
+## Build validation
+
+After editing code, ALWAYS run `./gradlew assembleDebug` to validate the build.

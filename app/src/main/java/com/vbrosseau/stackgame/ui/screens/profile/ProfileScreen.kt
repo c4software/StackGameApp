@@ -6,6 +6,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -164,6 +165,91 @@ fun ProfileScreen(
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                } else {
+                    // Display features for Premium/Ultra users
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color.White.copy(alpha = 0.1f)
+                        ),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.profile_features_title),
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                modifier = Modifier.padding(bottom = 12.dp)
+                            )
+                            
+                            val features = when (user.level) {
+                                UserLevel.PREMIUM -> listOf(
+                                    com.vbrosseau.stackgame.R.string.purchase_feature_ads,
+                                    com.vbrosseau.stackgame.R.string.purchase_feature_ghost,
+                                    com.vbrosseau.stackgame.R.string.purchase_feature_lives_bonus
+                                )
+                                UserLevel.ULTRA -> listOf(
+                                    com.vbrosseau.stackgame.R.string.purchase_feature_all_premium,
+                                    com.vbrosseau.stackgame.R.string.purchase_feature_rewind,
+                                    com.vbrosseau.stackgame.R.string.purchase_feature_lives_unlimited
+                                )
+                                else -> emptyList()
+                            }
+                            
+                            features.forEach { featureRes ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = null,
+                                        tint = if (user.level == UserLevel.ULTRA) Color(0xFF00BCD4) else Color(0xFFFFD700),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Text(
+                                        text = androidx.compose.ui.res.stringResource(featureRes),
+                                        fontSize = 14.sp,
+                                        color = Color.White.copy(alpha = 0.9f)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
+                }
+                
+                // Logout button (visible if not guest)
+                if (!user.isGuest()) {
+                    OutlinedButton(
+                        onClick = onLogout,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = Color.White
+                        ),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.5f)),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Text(
+                            text = androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.profile_logout_btn),
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Medium
                         )
                     }
                     

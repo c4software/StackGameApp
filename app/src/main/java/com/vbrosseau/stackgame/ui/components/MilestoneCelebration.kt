@@ -49,7 +49,8 @@ fun MilestoneCelebration(
             text = "BRAVO ${firstName.uppercase()}! 🎉",
             fontSize = (32 * scale).sp,
             fontWeight = FontWeight.Bold,
-            color = Color(0xFFFFD700).copy(alpha = alpha)
+            color = Color(0xFFFFD700).copy(alpha = alpha),
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
     }
 }

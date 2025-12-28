@@ -95,7 +95,7 @@ class MainViewModel(
                 if (user != null) {
                     userPreferences.saveUser(user)
                     _uiState.value = MainUiState(
-                        currentScreen = Screen.Game,
+                        currentScreen = Screen.Profile,
                         currentUser = user
                     )
                 }

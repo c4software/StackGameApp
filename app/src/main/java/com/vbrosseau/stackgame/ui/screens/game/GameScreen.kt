@@ -240,15 +240,6 @@ fun StackGame(
                     val gameOverText = context.getString(com.vbrosseau.stackgame.R.string.game_over, user.displayName)
                     drawText(gameOverText, size.width / 2, size.height / 2 - 40f, subPaint)
                     drawText(context.getString(com.vbrosseau.stackgame.R.string.tap_to_restart), size.width / 2, size.height / 2 + 20f, subPaint)
-                    
-                     if (user.hasRewindFeature()) {
-                        drawText(
-                            context.getString(com.vbrosseau.stackgame.R.string.long_press_rewind), 
-                            size.width / 2, 
-                            size.height / 2 + 100f, 
-                            subPaint
-                        )
-                    }
                 }
             }
         }
