@@ -23,6 +23,7 @@ fun ProfileScreen(
     user: User,
     onLogout: () -> Unit,
     onBack: () -> Unit,
+    onPurchaseClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -41,7 +42,7 @@ fun ProfileScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(top = 48.dp, start = 16.dp, end = 16.dp, bottom = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onBack) {
@@ -100,19 +101,10 @@ fun ProfileScreen(
                 
                 // User name
                 Text(
-                    text = user.firstName,
+                    text = user.displayName,
                     fontSize = 36.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
-                )
-                
-                Spacer(modifier = Modifier.height(12.dp))
-                
-                // Email
-                Text(
-                    text = user.email,
-                    fontSize = 18.sp,
-                    color = Color.White.copy(alpha = 0.7f)
                 )
                 
                 Spacer(modifier = Modifier.height(40.dp))
@@ -149,25 +141,29 @@ fun ProfileScreen(
                     }
                 }
                 
-                Spacer(modifier = Modifier.height(60.dp))
+                Spacer(modifier = Modifier.height(40.dp))
                 
-                // Logout button
-                Button(
-                    onClick = onLogout,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFFF5722).copy(alpha = 0.8f)
-                    ),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Text(
-                        text = "Déconnexion",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
+                // Purchase button (only for NORMAL users)
+                if (user.level == UserLevel.NORMAL) {
+                    Button(
+                        onClick = onPurchaseClick,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFFFD700).copy(alpha = 0.8f)
+                        ),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Text(
+                            text = "⭐ Passer Premium",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
             }
         }

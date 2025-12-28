@@ -14,9 +14,8 @@ import com.vbrosseau.stackgame.models.UserLevel
 import com.vbrosseau.stackgame.ui.MainViewModel
 import com.vbrosseau.stackgame.ui.Screen
 import com.vbrosseau.stackgame.ui.screens.game.StackGame
-import com.vbrosseau.stackgame.ui.screens.login.LoginScreen
-import com.vbrosseau.stackgame.ui.screens.onboarding.OnboardingScreen
 import com.vbrosseau.stackgame.ui.screens.profile.ProfileScreen
+import com.vbrosseau.stackgame.ui.screens.purchase.PurchaseScreen
 import com.vbrosseau.stackgame.ui.components.AdBanner
 import com.vbrosseau.stackgame.ui.theme.StackGameTheme
 import org.koin.androidx.viewmodel.ext.android.viewModel
@@ -44,53 +43,51 @@ fun StackGameApp(viewModel: MainViewModel) {
             Screen.Loading -> {
                 // Show nothing while loading
             }
-            Screen.Onboarding -> {
-                OnboardingScreen(
-                    onComplete = { viewModel.onOnboardingComplete() }
-                )
-            }
-            Screen.Login -> {
-                LoginScreen(
-                    onLoginSuccess = { user -> viewModel.onLoginSuccess(user) },
-                    onContinueAsGuest = { viewModel.onContinueAsGuest() }
-                )
-            }
+            
             Screen.Profile -> {
-                val user = uiState.currentUser ?: User("Joueur", "", UserLevel.NORMAL, isGuest = true)
+                val user = uiState.currentUser ?: User("guest", "Joueur", UserLevel.NORMAL)
                 
                 ProfileScreen(
                     user = user,
                     onLogout = { viewModel.onLogout() },
-                    onBack = { viewModel.onBackToGame() }
+                    onBack = { viewModel.onBackToGame() },
+                    onPurchaseClick = { viewModel.onPurchaseClick() }
                 )
             }
+            
+            Screen.Purchase -> {
+                val user = uiState.currentUser ?: User("guest", "Joueur", UserLevel.NORMAL)
+                
+                PurchaseScreen(
+                    currentLevel = user.level,
+                    onBack = { viewModel.onProfileClick() }
+                )
+            }
+            
             Screen.Game -> {
-                val user = uiState.currentUser ?: User("Joueur", "", UserLevel.NORMAL, isGuest = true)
+                val user = uiState.currentUser ?: User("guest", "Joueur", UserLevel.NORMAL)
                 
                 Scaffold(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .windowInsetsPadding(WindowInsets(0, 0, 0, 0)), // Ignore system bars
                     bottomBar = {
-                        // Show ad banner for NORMAL users
                         if (user.showsAds()) {
                             AdBanner()
                         }
-                    }
+                    },
+                    contentWindowInsets = WindowInsets(0, 0, 0, 0) // No content padding
                 ) { innerPadding ->
                     StackGame(
                         user = user,
                         onLoginClick = { viewModel.onProfileClick() },
-                        modifier = Modifier.padding(innerPadding)
+                        onPurchaseClick = { viewModel.onPurchaseClick() },
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding)
                     )
                 }
             }
         }
     }
-}
-
-enum class Screen {
-    Loading,
-    Onboarding,
-    Login,
-    Profile,
-    Game
 }

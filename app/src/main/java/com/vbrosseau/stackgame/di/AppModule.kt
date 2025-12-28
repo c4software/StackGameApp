@@ -1,11 +1,11 @@
 package com.vbrosseau.stackgame.di
 
-import com.vbrosseau.stackgame.api.AuthService
+import com.vbrosseau.stackgame.data.BillingManager
+import com.vbrosseau.stackgame.data.PlayGamesManager
 import com.vbrosseau.stackgame.data.UserPreferences
-import com.vbrosseau.stackgame.data.UserRepository
 import com.vbrosseau.stackgame.ui.MainViewModel
-import com.vbrosseau.stackgame.ui.screens.login.LoginViewModel
 import com.vbrosseau.stackgame.ui.screens.profile.ProfileViewModel
+import com.vbrosseau.stackgame.ui.screens.purchase.PurchaseViewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
@@ -13,11 +13,11 @@ import org.koin.dsl.module
 val appModule = module {
     // Data layer
     single { UserPreferences(androidContext()) }
-    single { AuthService() }
-    single { UserRepository(get(), get()) }
+    single { BillingManager(androidContext()) }
+    // PlayGamesManager needs Activity, will be created in MainActivity
     
     // ViewModels
-    viewModel { LoginViewModel(get()) }
+    viewModel { MainViewModel(get(), get()) }
     viewModel { ProfileViewModel(get()) }
-    viewModel { MainViewModel(get()) }
+    viewModel { PurchaseViewModel(get()) }
 }

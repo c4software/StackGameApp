@@ -93,6 +93,7 @@ const val MIN_BLOCK_WIDTH_RATIO = 0.25f // Minimum 25% of initial width
 fun StackGame(
     user: User,
     onLoginClick: () -> Unit,
+    onPurchaseClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     // --- STATE ---
@@ -113,7 +114,7 @@ fun StackGame(
     var adTimerRemaining by remember { mutableStateOf(0L) } // Timer for blocking ad
 
     var currentBlockX by remember { mutableFloatStateOf(0f) }
-    var currentBlockY by remember { mutableFloatStateOf(0f) }
+    var currentBlockY by remember { mutableFloatStateOf(250f) }
     var isBlockFalling by remember { mutableStateOf(false) }
     var currentBlockWidth by remember { mutableFloatStateOf(0f) }
     var moveSpeed by remember { mutableFloatStateOf(INITIAL_SPEED) }
@@ -156,7 +157,7 @@ fun StackGame(
         showAdOverlay = false
 
         isBlockFalling = false
-        currentBlockY = 100f
+        currentBlockY = 250f
         currentBlockX = -initialWidth
         moveDirection = 1f
     }
@@ -194,7 +195,7 @@ fun StackGame(
             moveSpeed = snapshot.currentSpeed
 
             isBlockFalling = false
-            currentBlockY = 100f
+            currentBlockY = 250f
             currentBlockX = if (score % 2 == 0) -currentBlockWidth else screenWidth
             moveDirection = if (score % 2 == 0) 1f else -1f
 
@@ -338,7 +339,7 @@ fun StackGame(
             moveSpeed += SPEED_INCREMENT
 
             isBlockFalling = false
-            currentBlockY = 100f
+            currentBlockY = 250f
             currentBlockX = if (score % 2 == 0) -currentBlockWidth else screenWidth
             moveDirection = if (score % 2 == 0) 1f else -1f
         }
@@ -626,7 +627,7 @@ fun StackGame(
                     textSize = 50f
                     textAlign = android.graphics.Paint.Align.CENTER
                 }
-                drawText("Game Over, ${user.firstName}!", size.width / 2, size.height / 2 - 40f, subPaint)
+                drawText("Game Over, ${user.displayName}!", size.width / 2, size.height / 2 - 40f, subPaint)
                 drawText("TAP TO RESTART", size.width / 2, size.height / 2 + 20f, subPaint)
                 
                 // Only show rewind hint for ULTRA users
@@ -649,11 +650,11 @@ fun StackGame(
                         )
                     )
                 )
-                .padding(horizontal = 20.dp, vertical = 12.dp),
+                .padding(top = 48.dp, start = 16.dp, end = 16.dp, bottom = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Profile button
+            // Profile button (kept from original, but moved to the left)
             Text(
                 text = "👤",
                 fontSize = 28.sp,
@@ -662,16 +663,16 @@ fun StackGame(
                     .clickable { onLoginClick() }
                     .padding(4.dp)
             )
-            
+
             // Score
             Text(
-                text = score.toString(),
+                text = score.toString(), // Original score format
                 fontSize = 32.sp,
                 fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
                 color = Color.White
             )
             
-            // Lives - with spacing between hearts
+            // Lives display (kept from original, but moved to the right)
             Text(
                 text = "❤ ".repeat(lives.coerceAtLeast(0)).trim(),
                 fontSize = 28.sp,
@@ -699,14 +700,16 @@ fun StackGame(
             onDismiss = {
                 showAdOverlay = false
                 adTimerRemaining = 0
-            }
+                resetGame()
+            },
+            onPurchaseClick = onPurchaseClick // Navigate directly to purchase screen
         )
     }
     
     // Show milestone celebration
     if (showMilestoneCelebration) {
         MilestoneCelebration(
-            firstName = user.firstName,
+            firstName = user.displayName,
             score = celebrationScore,
             onDismiss = {
                 showMilestoneCelebration = false

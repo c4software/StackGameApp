@@ -2,6 +2,7 @@ package com.vbrosseau.stackgame.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.vbrosseau.stackgame.data.BillingManager
 import com.vbrosseau.stackgame.data.UserPreferences
 import com.vbrosseau.stackgame.models.User
 import com.vbrosseau.stackgame.models.UserLevel
@@ -12,10 +13,9 @@ import kotlinx.coroutines.launch
 
 sealed class Screen {
     object Loading : Screen()
-    object Onboarding : Screen()
-    object Login : Screen()
     object Game : Screen()
     object Profile : Screen()
+    object Purchase : Screen()
 }
 
 data class MainUiState(
@@ -24,7 +24,8 @@ data class MainUiState(
 )
 
 class MainViewModel(
-    private val userPreferences: UserPreferences
+    private val userPreferences: UserPreferences,
+    private val billingManager: BillingManager
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(MainUiState())
@@ -32,77 +33,75 @@ class MainViewModel(
     
     init {
         loadInitialScreen()
+        
+        // Observe purchase state changes
+        viewModelScope.launch {
+            billingManager.purchaseState.collect { purchaseState ->
+                val currentUser = _uiState.value.currentUser
+                if (currentUser != null) {
+                    // Update user level based on purchases
+                    val newLevel = purchaseState.getUserLevel()
+                    if (currentUser.level != newLevel) {
+                        val updatedUser = User(
+                            currentUser.playerId,
+                            currentUser.displayName,
+                            newLevel,
+                            currentUser.avatarUri
+                        )
+                        _uiState.value = _uiState.value.copy(currentUser = updatedUser)
+                        userPreferences.saveUser(updatedUser)
+                    }
+                }
+            }
+        }
     }
     
     private fun loadInitialScreen() {
         viewModelScope.launch {
+            // Initialize billing
+            billingManager.initialize()
+            
             val savedUser = userPreferences.getUser()
             if (savedUser != null) {
-                if (!userPreferences.hasCompletedOnboarding()) {
-                    _uiState.value = MainUiState(
-                        currentScreen = Screen.Onboarding,
-                        currentUser = savedUser
-                    )
-                } else {
-                    _uiState.value = MainUiState(
-                        currentScreen = Screen.Game,
-                        currentUser = savedUser
-                    )
-                }
-            } else {
                 _uiState.value = MainUiState(
-                    currentScreen = Screen.Onboarding,
-                    currentUser = null
+                    currentScreen = Screen.Game,
+                    currentUser = savedUser
+                )
+            } else {
+                // Create default guest user
+                val guestUser = User("guest", "Joueur", UserLevel.NORMAL)
+                userPreferences.saveUser(guestUser)
+                _uiState.value = MainUiState(
+                    currentScreen = Screen.Game,
+                    currentUser = guestUser
                 )
             }
         }
     }
     
-    fun onOnboardingComplete() {
-        userPreferences.setOnboardingCompleted(true)
-        val guestUser = User("Joueur", "", UserLevel.NORMAL, isGuest = true)
-        _uiState.value = MainUiState(
-            currentScreen = Screen.Game,
-            currentUser = guestUser
-        )
-    }
-    
-    fun onLoginSuccess(user: User) {
-        userPreferences.saveUser(user)
-        _uiState.value = MainUiState(
-            currentScreen = Screen.Game,
-            currentUser = user
-        )
-    }
-    
-    fun onContinueAsGuest() {
-        val guestUser = User("Joueur", "", UserLevel.NORMAL, isGuest = true)
-        _uiState.value = MainUiState(
-            currentScreen = Screen.Game,
-            currentUser = guestUser
-        )
-    }
-    
     fun onProfileClick() {
-        val currentUser = _uiState.value.currentUser ?: User("Joueur", "", UserLevel.NORMAL, isGuest = true)
-        
-        if (currentUser.isGuest) {
-            _uiState.value = _uiState.value.copy(currentScreen = Screen.Login)
-        } else {
-            _uiState.value = _uiState.value.copy(currentScreen = Screen.Profile)
-        }
+        _uiState.value = _uiState.value.copy(currentScreen = Screen.Profile)
     }
     
     fun onLogout() {
         userPreferences.logout()
-        userPreferences.setOnboardingCompleted(false)
+        val guestUser = User("guest", "Joueur", UserLevel.NORMAL)
+        userPreferences.saveUser(guestUser)
         _uiState.value = MainUiState(
-            currentScreen = Screen.Onboarding,
-            currentUser = null
+            currentScreen = Screen.Game,
+            currentUser = guestUser
         )
     }
     
     fun onBackToGame() {
         _uiState.value = _uiState.value.copy(currentScreen = Screen.Game)
+    }
+    
+    fun onPurchaseClick() {
+        _uiState.value = _uiState.value.copy(currentScreen = Screen.Purchase)
+    }
+    
+    fun refreshPurchases() {
+        billingManager.queryPurchases()
     }
 }

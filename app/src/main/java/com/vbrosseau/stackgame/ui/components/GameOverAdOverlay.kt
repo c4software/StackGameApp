@@ -24,6 +24,7 @@ fun GameOverAdOverlay(
     canClose: Boolean = true,
     timeRemaining: Int = 0,
     onDismiss: () -> Unit,
+    onPurchaseClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     // Randomly choose between PREMIUM and ULTRA ad
@@ -74,6 +75,48 @@ fun GameOverAdOverlay(
                     }
                     
                     Spacer(modifier = Modifier.height(24.dp))
+                    
+                    // Ad message
+                    Text(
+                        text = "Publicité - Passez à PREMIUM pour la retirer",
+                        fontSize = 16.sp,
+                        color = Color.White.copy(alpha = 0.9f),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 32.dp)
+                    )
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    // Purchase button
+                    Button(
+                        onClick = onPurchaseClick,
+                        modifier = Modifier
+                            .fillMaxWidth(0.8f)
+                            .height(56.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFFFD700).copy(alpha = 0.9f)
+                        ),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "⭐",
+                                fontSize = 24.sp
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Passer Premium - 1€",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
                     
                     // Timer or close button
                     if (!canClose && timeRemaining > 0) {
