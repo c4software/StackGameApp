@@ -2,8 +2,12 @@ package com.vbrosseau.stackgame.ui
 
 import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.Text
+import androidx.compose.ui.Alignment
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -15,6 +19,10 @@ import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.vbrosseau.stackgame.models.User
+import kotlinx.coroutines.delay
 import kotlin.math.*
 import kotlin.random.Random
 
@@ -69,20 +77,38 @@ const val MAX_ANGULAR_VELOCITY = 5f // Maximum rotation speed
 const val PHYSICS_GRAVITY = 1.2f // Gravity for physics simulation
 const val ANGULAR_DAMPING = 0.98f // Damping for rotation
 const val INITIAL_LIVES = 3 // Number of lives at game start
+const val ULTRA_MAX_LIVES = 5 // Max lives for ULTRA users
+const val PREMIUM_MAX_LIVES = 4 // Max lives for PREMIUM users
+const val NORMAL_MAX_LIVES = 3 // Max lives for NORMAL users
+const val LIFE_BONUS_INTERVAL = 20 // Give 1 life every 20 levels
+const val AD_BLOCKING_DURATION = 5000L // 5 seconds in milliseconds
+const val DIFFICULTY_INTERVAL = 10 // Reduce block size every 10 levels
+const val SIZE_REDUCTION_FACTOR = 0.95f // Reduce by 5% each interval
+const val MIN_BLOCK_WIDTH_RATIO = 0.25f // Minimum 25% of initial width
 
 
 @Composable
-fun StackGame(modifier: Modifier = Modifier) {
+fun StackGame(
+    user: User,
+    onLoginClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     // --- STATE ---
 
     val view = LocalView.current
     var lastTime by remember { mutableLongStateOf(0L) }
 
     var isGameOver by remember { mutableStateOf(false) }
-    var score by remember { mutableIntStateOf(0) }
-    var lives by remember { mutableIntStateOf(INITIAL_LIVES) }
+    var score by remember { mutableStateOf(0) } // Changed to mutableStateOf<Int>
+    var lastMilestone by remember { mutableStateOf(0) }
+    var lastLifeBonus by remember { mutableStateOf(0) } // Track last life bonus score
+    var showMilestoneCelebration by remember { mutableStateOf(false) }
+    var celebrationScore by remember { mutableStateOf(0) }
+    var lives by remember { mutableStateOf(3) } // Changed to mutableStateOf<Int>
     var stack by remember { mutableStateOf(listOf<Block>()) }
     var particles by remember { mutableStateOf(listOf<Particle>()) }
+    var showAdOverlay by remember { mutableStateOf(false) }
+    var adTimerRemaining by remember { mutableStateOf(0L) } // Timer for blocking ad
 
     var currentBlockX by remember { mutableFloatStateOf(0f) }
     var currentBlockY by remember { mutableFloatStateOf(0f) }
@@ -102,6 +128,14 @@ fun StackGame(modifier: Modifier = Modifier) {
 
     lateinit var landBlock: () -> Unit
 
+    // Calculate block width based on difficulty (score)
+    fun calculateBlockWidth(baseWidth: Float, currentScore: Int): Float {
+        val difficultyLevel = currentScore / DIFFICULTY_INTERVAL
+        val scaleFactor = SIZE_REDUCTION_FACTOR.pow(difficultyLevel)
+        val minWidth = baseWidth * MIN_BLOCK_WIDTH_RATIO
+        return max(baseWidth * scaleFactor, minWidth)
+    }
+
     fun resetGame() {
         val initialWidth = screenWidth * 0.5f
         stack = listOf(
@@ -110,11 +144,14 @@ fun StackGame(modifier: Modifier = Modifier) {
         currentBlockWidth = initialWidth
         moveSpeed = INITIAL_SPEED
         score = 0
+        lastMilestone = 0 // Added milestone reset
+        lastLifeBonus = 0 // Reset life bonus tracker
         lives = INITIAL_LIVES
         isGameOver = false
         cameraY = 0f
         shakeTime = 0f
         history.clear()
+        showAdOverlay = false
 
         isBlockFalling = false
         currentBlockY = 100f
@@ -144,6 +181,9 @@ fun StackGame(modifier: Modifier = Modifier) {
     }
 
     fun doRewind() {
+        // Only ULTRA users can use rewind
+        if (!user.hasRewindFeature()) return
+        
         if (history.isNotEmpty() && !isGameOver) {
             val snapshot = history.removeLast()
             stack = snapshot.stack
@@ -212,10 +252,11 @@ fun StackGame(modifier: Modifier = Modifier) {
 
         // Check if there's any overlap at all
         if (overlapWidth <= 0) {
-            // No overlap - block falls completely
+            // No overlap - block falls completely - NO SCORE
             isGameOver = true
             shakeTime = 15f
             view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY_RELEASE)
+            // Don't increment score when block falls
         } else {
             history.add(GameSnapshot(stack, score, currentBlockWidth, moveSpeed, cameraY))
 
@@ -263,8 +304,35 @@ fun StackGame(modifier: Modifier = Modifier) {
                 spawnParticles(newBlock.rect, newColor.copy(alpha = 0.3f), 8)
             }
 
-            score++
-            currentBlockWidth = landedRect.width
+            // Only increment score if block is stable (won't fall)
+            if (isStable) {
+                score++
+                
+                // Check for life bonus every 20 levels
+                if (score % LIFE_BONUS_INTERVAL == 0 && score > lastLifeBonus) {
+                    lastLifeBonus = score
+                    val maxLives = when (user.level) {
+                        com.vbrosseau.stackgame.models.UserLevel.ULTRA -> ULTRA_MAX_LIVES
+                        com.vbrosseau.stackgame.models.UserLevel.PREMIUM -> PREMIUM_MAX_LIVES
+                        com.vbrosseau.stackgame.models.UserLevel.NORMAL -> NORMAL_MAX_LIVES
+                    }
+                    if (lives < maxLives) {
+                        lives++
+                        view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                    }
+                }
+            }
+            
+            // Check for milestone celebration (every 10 points)
+            if (score % 10 == 0 && score > lastMilestone) {
+                lastMilestone = score
+                celebrationScore = score
+                showMilestoneCelebration = true
+            }
+            
+            // Apply difficulty scaling - reduce block width every 20 levels
+            val baseWidth = screenWidth * 0.5f
+            currentBlockWidth = calculateBlockWidth(baseWidth, score)
             moveSpeed += SPEED_INCREMENT
 
             isBlockFalling = false
@@ -277,6 +345,11 @@ fun StackGame(modifier: Modifier = Modifier) {
 
     fun handleTap() {
         if (isGameOver) {
+            // For NORMAL users, dismiss ad if showing, otherwise reset
+            if (user.showsAds() && showAdOverlay) {
+                // Ad is showing, tapping will be handled by ad overlay's close button
+                return
+            }
             resetGame()
             return
         }
@@ -358,6 +431,10 @@ fun StackGame(modifier: Modifier = Modifier) {
                                 if (lives <= 0) {
                                     isGameOver = true
                                     shakeTime = 15f
+                                    // Show ad for NORMAL users
+                                    if (user.showsAds()) {
+                                        showAdOverlay = true
+                                    }
                                 }
                                 break
                             }
@@ -372,14 +449,23 @@ fun StackGame(modifier: Modifier = Modifier) {
                             isGameOver = true
                             shakeTime = 15f
                             view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY_RELEASE)
+                            // Show ad for NORMAL users
+                            if (user.showsAds()) {
+                                showAdOverlay = true
+                            }
                         }
                     }
 
                     val topBlockY = stack.last().rect.top
                     // Keep the top of the stack around 60% of the screen
-                    // Allow camera to scroll infinitely upward for unlimited tower height
                     val targetCamY = screenHeight * 0.6f - topBlockY
-                    cameraY += (targetCamY - cameraY) * 0.1f
+                    
+                    // Limit the maximum bounce amplitude to prevent showing too much base on tall towers
+                    // Allow camera to move freely, but clamp the final position
+                    val maxBounceDown = 100f // Maximum pixels the camera can bounce down from target
+                    val clampedTargetCamY = targetCamY.coerceAtLeast(cameraY - maxBounceDown)
+                    
+                    cameraY += (clampedTargetCamY - cameraY) * 0.1f
                 }
 
                 val livingParticles = particles.mapNotNull { p ->
@@ -396,16 +482,17 @@ fun StackGame(modifier: Modifier = Modifier) {
         }
     }
 
-    Canvas(
-        modifier = modifier
-            .fillMaxSize()
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onTap = { handleTap() },
-                    onLongPress = { doRewind() }
-                )
-            }
-    ) {
+    Box(modifier = modifier.fillMaxSize()) {
+        Canvas(
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onTap = { handleTap() },
+                        onLongPress = { doRewind() }
+                    )
+                }
+        ) {
         if (screenHeight == 0f) {
             screenWidth = size.width
             screenHeight = size.height
@@ -499,8 +586,8 @@ fun StackGame(modifier: Modifier = Modifier) {
                     }
                 }
 
-                // Draw placement shadow
-                if (!isGameOver && !isBlockFalling && stack.isNotEmpty()) {
+                // Draw placement shadow (ghost feature - PREMIUM & ULTRA only)
+                if (!isGameOver && !isBlockFalling && stack.isNotEmpty() && user.hasGhostFeature()) {
                     val shadowAlpha = (0.3f - (score / 100f)).coerceIn(0f, 0.3f)
                     if (shadowAlpha > 0f) {
                         drawRect(
@@ -529,37 +616,99 @@ fun StackGame(modifier: Modifier = Modifier) {
             }
         }
 
-        drawContext.canvas.nativeCanvas.apply {
-            val textPaint = android.graphics.Paint().apply {
-                color = android.graphics.Color.WHITE
-                textSize = 100f
-                textAlign = android.graphics.Paint.Align.CENTER
-                typeface = android.graphics.Typeface.DEFAULT_BOLD
-                setShadowLayer(10f, 0f, 0f, android.graphics.Color.BLACK)
-            }
-            drawText(score.toString(), size.width / 2, 150f, textPaint)
-
-            // Draw lives as hearts in top right
-            val heartPaint = android.graphics.Paint().apply {
-                color = android.graphics.Color.RED
-                textSize = 60f
-                textAlign = android.graphics.Paint.Align.RIGHT
-                typeface = android.graphics.Typeface.DEFAULT_BOLD
-                setShadowLayer(8f, 0f, 0f, android.graphics.Color.BLACK)
-            }
-            
-            val livesText = "❤".repeat(lives.coerceAtLeast(0))
-            drawText(livesText, size.width - 40f, 100f, heartPaint)
-
-            if (isGameOver) {
+        // Game over text
+        if (isGameOver) {
+            drawContext.canvas.nativeCanvas.apply {
                 val subPaint = android.graphics.Paint().apply {
                     color = android.graphics.Color.WHITE
                     textSize = 50f
                     textAlign = android.graphics.Paint.Align.CENTER
                 }
-                drawText("TAP TO RESTART", size.width / 2, size.height / 2, subPaint)
-                drawText("LONG PRESS TO REWIND", size.width / 2, size.height / 2 + 80f, subPaint)
+                drawText("Game Over, ${user.firstName}!", size.width / 2, size.height / 2 - 40f, subPaint)
+                drawText("TAP TO RESTART", size.width / 2, size.height / 2 + 20f, subPaint)
+                
+                // Only show rewind hint for ULTRA users
+                if (user.hasRewindFeature()) {
+                    drawText("LONG PRESS TO REWIND", size.width / 2, size.height / 2 + 100f, subPaint)
+                }
             }
         }
+        }
+        
+        // Header bar with profile, score, and lives - rendered on top
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            Color.Black.copy(alpha = 0.5f),
+                            Color.Transparent
+                        )
+                    )
+                )
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Profile button
+            Text(
+                text = "👤",
+                fontSize = 28.sp,
+                color = Color.White,
+                modifier = Modifier
+                    .clickable { onLoginClick() }
+                    .padding(4.dp)
+            )
+            
+            // Score
+            Text(
+                text = score.toString(),
+                fontSize = 32.sp,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                color = Color.White
+            )
+            
+            // Lives - with spacing between hearts
+            Text(
+                text = "❤ ".repeat(lives.coerceAtLeast(0)).trim(),
+                fontSize = 28.sp,
+                color = Color(0xFFFF5252)
+            )
+        }
+    }
+    
+    // Show ad overlay for NORMAL users after game over - OUTSIDE the Box to ensure it's on top
+    if (showAdOverlay && user.showsAds()) {
+        // Start timer when ad overlay is shown
+        LaunchedEffect(showAdOverlay) {
+            if (showAdOverlay) {
+                adTimerRemaining = AD_BLOCKING_DURATION
+                while (adTimerRemaining > 0) {
+                    delay(100)
+                    adTimerRemaining -= 100
+                }
+            }
+        }
+        
+        GameOverAdOverlay(
+            canClose = adTimerRemaining <= 0,
+            timeRemaining = (adTimerRemaining / 1000f).toInt() + 1,
+            onDismiss = {
+                showAdOverlay = false
+                adTimerRemaining = 0
+            }
+        )
+    }
+    
+    // Show milestone celebration
+    if (showMilestoneCelebration) {
+        MilestoneCelebration(
+            firstName = user.firstName,
+            score = celebrationScore,
+            onDismiss = {
+                showMilestoneCelebration = false
+            }
+        )
     }
 }
