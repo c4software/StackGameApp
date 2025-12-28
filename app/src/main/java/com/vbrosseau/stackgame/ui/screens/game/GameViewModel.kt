@@ -205,29 +205,37 @@ class GameViewModel : ViewModel() {
     fun updateGameLoop() {
         if (screenWidth == 0f) return
         
-        // 1. Update Particles
-        updateParticles()
-        
-        // 2. Update Shake
-        if (_gameState.value.shakeTime > 0) {
-            _gameState.update { it.copy(shakeTime = it.shakeTime - 1f) }
+        // Single atomic update for all frame logic related to GameState
+        _gameState.update { currentState ->
+            var nextState = currentState
+            
+            // 1. Update Particles
+            nextState = calculateParticles(nextState)
+            
+            // 2. Update Shake
+            if (nextState.shakeTime > 0) {
+                nextState = nextState.copy(shakeTime = nextState.shakeTime - 1f)
+            }
+            
+            if (nextState.stack.isNotEmpty() && !nextState.isGameOver) {
+                 // 3. Update Physics (Stacks)
+                 nextState = calculatePhysics(nextState)
+                 
+                 // 4. Update Camera
+                 nextState = calculateCamera(screenHeight, nextState)
+            }
+            
+            nextState
         }
-        
-        val state = _gameState.value
-        if (state.stack.isEmpty()) return
 
-        if (!state.isGameOver) {
-            // 3. Update Current Block
+        // 5. Update Current Block (Separate StateFlow)
+        // We do this after GameState update so it sees the latest Physics/Camera states if needed
+        val state = _gameState.value
+        if (state.stack.isNotEmpty() && !state.isGameOver) {
             updateCurrentBlock()
-            
-            // 4. Update Physics (Stacks)
-            updatePhysics()
-            
-            // 5. Update Camera
-            updateCamera()
         }
     }
-    
+
     private fun updateCurrentBlock() {
         val current = _currentBlockState.value
         
@@ -236,24 +244,13 @@ class GameViewModel : ViewModel() {
             _currentBlockState.update { it.copy(y = newY) }
             
             val topBlock = _gameState.value.stack.last()
-            // Simplified landing check: strictly based on Y relative to top block
-            // In original: topOfStackOnScreen = topBlock.rect.top + cameraY. 
-            // currentBlockY was screen coordinate.
-            // Here, let's assume current.y and topBlock.rect.top are both "virtual world" Y (increasing downwards)
-            // But topBlock.rect.top is fixed, while current.y resets to 250f.
-            // Effectively, we need to map "250f + fall" to "topBlock.rect.top - BLOCK_HEIGHT".
-            // The visual gap is filled by cameraY.
-            // Let's stick to the relative logic:
-            // When current block visually touches the top block.
-            // Visual position of top block top: topBlock.rect.top + cameraY
-            // Visual position of current block bottom: current.y + BLOCK_HEIGHT
             
             if (newY + blockHeight >= topBlock.rect.top + _gameState.value.cameraY) {
                 landBlock()
             }
         } else {
             var newX = current.x + current.moveSpeed * current.moveDirection
-            var newDir = current.moveDirection // Use val/var correctly
+            var newDir = current.moveDirection
             
             // Bounce bounds
             if ((newX > screenWidth && current.moveDirection > 0) || (newX < -current.width && current.moveDirection < 0)) {
@@ -263,19 +260,45 @@ class GameViewModel : ViewModel() {
         }
     }
     
-    private fun updatePhysics() {
-        var stack = _gameState.value.stack.toMutableList()
+    private fun calculateCamera(screenHeight: Float, state: GameState): GameState {
+        val stack = state.stack
+        val topBlockY = stack.last().rect.top
+        val camY = state.cameraY
+        
+        val targetCamY = screenHeight * 0.6f - topBlockY
+        val maxBounceDown = 100f
+        val clampedTargetCamY = targetCamY.coerceAtLeast(camY - maxBounceDown)
+        
+        val newCamY = camY + (clampedTargetCamY - camY) * 0.1f
+        return state.copy(cameraY = newCamY)
+    }
+    
+    private fun calculateParticles(state: GameState): GameState {
+         val living = state.particles.mapNotNull { p ->
+             p.x += p.vx
+             p.y += p.vy
+             p.vy += gravity
+             p.life -= 0.02f
+             if (p.life > 0) p else null
+         }
+         return state.copy(particles = living)
+    }
+
+    private fun calculatePhysics(state: GameState): GameState {
+        // We can't easily modify the list in place if we want to be safe, but we can reuse the logic
+        // This function needs to return the NEW state
+        
+        val stack = state.stack
+        // If stack is small, cost of copy is low.
+        // We need to preserve the "base" block [0] usually
+        
+        // Logic from original updatePhysics:
         var hasUnstableBlocks = false
-        var lives = _gameState.value.lives
-        var gameOver = false
+        var lives = state.lives
+        var isGameOver = false
         
-        // Iterate compatible with removal
-        val iterator = stack.listIterator()
-        // Skip base block
-        if (iterator.hasNext()) iterator.next() 
-        
-        // We'll create a new list for safety
-        val newStack = ArrayList<Block>()
+        // We will build a new list
+        val newStack = ArrayList<Block>(stack.size)
         if (stack.isNotEmpty()) newStack.add(stack[0])
         
         for (i in 1 until stack.size) {
@@ -309,8 +332,8 @@ class GameViewModel : ViewModel() {
                 if (newTop > screenHeight + 100) {
                     lives--
                     sendEffect(GameEffect.VibrateFail)
-                    if (lives <= 0) gameOver = true
-                    // Don't add to newStack
+                    if (lives <= 0) isGameOver = true
+                    // Don't add to newStack -> Effectively removed
                     continue 
                 }
             }
@@ -321,41 +344,16 @@ class GameViewModel : ViewModel() {
         // Tower balance check
         if (!hasUnstableBlocks && newStack.size > 1 && lives > 0) {
              if (!checkTowerBalance(newStack)) {
-                 gameOver = true
+                 isGameOver = true
                  sendEffect(GameEffect.VibrateFail)
              }
         }
         
-        if (gameOver) {
-            _gameState.update { it.copy(isGameOver = true, shakeTime = 15f, lives = max(0, lives), stack = newStack) }
-            // Trigger Ad logic in UI based on state
+        if (isGameOver) {
+            return state.copy(isGameOver = true, shakeTime = 15f, lives = max(0, lives), stack = newStack)
         } else {
-             _gameState.update { it.copy(lives = lives, stack = newStack) }
+             return state.copy(lives = lives, stack = newStack)
         }
-    }
-    
-    private fun updateCamera() {
-        val stack = _gameState.value.stack
-        val topBlockY = stack.last().rect.top
-        val camY = _gameState.value.cameraY
-        
-        val targetCamY = screenHeight * 0.6f - topBlockY
-        val maxBounceDown = 100f
-        val clampedTargetCamY = targetCamY.coerceAtLeast(camY - maxBounceDown)
-        
-        val newCamY = camY + (clampedTargetCamY - camY) * 0.1f
-        _gameState.update { it.copy(cameraY = newCamY) }
-    }
-    
-    private fun updateParticles() {
-         val living = _gameState.value.particles.mapNotNull { p ->
-             p.x += p.vx
-             p.y += p.vy
-             p.vy += gravity
-             p.life -= 0.02f
-             if (p.life > 0) p else null
-         }
-         _gameState.update { it.copy(particles = living) }
     }
     
     // --- LOGIC ---
