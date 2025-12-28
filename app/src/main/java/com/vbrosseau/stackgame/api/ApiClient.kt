@@ -1,5 +1,6 @@
 package com.vbrosseau.stackgame.api
 
+import com.vbrosseau.stackgame.BuildConfig
 import com.vbrosseau.stackgame.models.User
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -27,7 +28,7 @@ class ApiClient {
     }
     
     companion object {
-        private const val BASE_URL = "https://cours.brosseau.ovh/api"
+        private const val BASE_URL = BuildConfig.API_BASE_URL
     }
     
     suspend fun login(email: String): Result<User> {

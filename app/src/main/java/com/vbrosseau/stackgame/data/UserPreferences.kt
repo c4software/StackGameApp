@@ -6,6 +6,7 @@ import com.vbrosseau.stackgame.models.User
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.decodeFromString
+import androidx.core.content.edit
 
 class UserPreferences(context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("stack_game_prefs", Context.MODE_PRIVATE)
@@ -20,12 +21,12 @@ class UserPreferences(context: Context) {
     }
     
     fun setOnboardingCompleted(completed: Boolean) {
-        prefs.edit().putBoolean(KEY_ONBOARDING_COMPLETED, completed).apply()
+        prefs.edit { putBoolean(KEY_ONBOARDING_COMPLETED, completed) }
     }
     
     fun saveUser(user: User) {
         val json = Json.encodeToString(user)
-        prefs.edit().putString(KEY_USER, json).apply()
+        prefs.edit { putString(KEY_USER, json) }
     }
     
     fun getUser(): User? {
@@ -38,6 +39,6 @@ class UserPreferences(context: Context) {
     }
     
     fun logout() {
-        prefs.edit().remove(KEY_USER).apply()
+        prefs.edit { remove(KEY_USER) }
     }
 }
