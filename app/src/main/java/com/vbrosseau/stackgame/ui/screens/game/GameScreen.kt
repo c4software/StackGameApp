@@ -1,4 +1,4 @@
-package com.vbrosseau.stackgame.ui
+package com.vbrosseau.stackgame.ui.screens.game
 
 import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.Canvas
@@ -22,6 +22,8 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.vbrosseau.stackgame.models.User
+import com.vbrosseau.stackgame.ui.components.GameOverAdOverlay
+import com.vbrosseau.stackgame.ui.components.MilestoneCelebration
 import kotlinx.coroutines.delay
 import kotlin.math.*
 import kotlin.random.Random
@@ -83,7 +85,7 @@ const val NORMAL_MAX_LIVES = 3 // Max lives for NORMAL users
 const val LIFE_BONUS_INTERVAL = 20 // Give 1 life every 20 levels
 const val AD_BLOCKING_DURATION = 5000L // 5 seconds in milliseconds
 const val DIFFICULTY_INTERVAL = 10 // Reduce block size every 10 levels
-const val SIZE_REDUCTION_FACTOR = 0.95f // Reduce by 5% each interval
+const val SIZE_REDUCTION_FACTOR = 0.90f // Reduce by 10% each interval (faster difficulty)
 const val MIN_BLOCK_WIDTH_RATIO = 0.25f // Minimum 25% of initial width
 
 
@@ -321,13 +323,13 @@ fun StackGame(
                         view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
                     }
                 }
-            }
-            
-            // Check for milestone celebration (every 10 points)
-            if (score % 10 == 0 && score > lastMilestone) {
-                lastMilestone = score
-                celebrationScore = score
-                showMilestoneCelebration = true
+                
+                // Check for milestone celebration (every 10 points) - only when score increases
+                if (score % 10 == 0 && score > lastMilestone) {
+                    lastMilestone = score
+                    celebrationScore = score
+                    showMilestoneCelebration = true
+                }
             }
             
             // Apply difficulty scaling - reduce block width every 20 levels

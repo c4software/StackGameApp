@@ -1,4 +1,4 @@
-package com.vbrosseau.stackgame.ui
+package com.vbrosseau.stackgame.ui.components
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.layout.*

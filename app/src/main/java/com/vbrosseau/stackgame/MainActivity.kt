@@ -8,107 +8,64 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import com.vbrosseau.stackgame.data.UserPreferences
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vbrosseau.stackgame.models.User
 import com.vbrosseau.stackgame.models.UserLevel
-import com.vbrosseau.stackgame.ui.*
+import com.vbrosseau.stackgame.ui.MainViewModel
+import com.vbrosseau.stackgame.ui.Screen
+import com.vbrosseau.stackgame.ui.screens.game.StackGame
+import com.vbrosseau.stackgame.ui.screens.login.LoginScreen
+import com.vbrosseau.stackgame.ui.screens.onboarding.OnboardingScreen
+import com.vbrosseau.stackgame.ui.screens.profile.ProfileScreen
+import com.vbrosseau.stackgame.ui.components.AdBanner
 import com.vbrosseau.stackgame.ui.theme.StackGameTheme
-import org.koin.android.ext.android.inject
+import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class MainActivity : ComponentActivity() {
     
-    // Inject UserPreferences using Koin
-    private val userPreferences: UserPreferences by inject()
+    private val mainViewModel: MainViewModel by viewModel()
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         
         setContent {
-            StackGameApp(userPreferences)
+            StackGameApp(mainViewModel)
         }
     }
 }
 
 @Composable
-fun StackGameApp(userPreferences: UserPreferences) {
+fun StackGameApp(viewModel: MainViewModel) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    
     StackGameTheme {
-        var currentScreen by remember { mutableStateOf<Screen>(Screen.Loading) }
-        var currentUser by remember { mutableStateOf<User?>(null) }
-        
-        // Determine initial screen
-        LaunchedEffect(Unit) {
-            val savedUser = userPreferences.getUser()
-            if (savedUser != null) {
-                currentUser = savedUser
-                // Check if we need to show onboarding (only on first launch)
-                if (!userPreferences.hasCompletedOnboarding()) {
-                    currentScreen = Screen.Onboarding
-                } else {
-                    currentScreen = Screen.Game
-                }
-            } else {
-                // No saved user - show onboarding
-                currentScreen = Screen.Onboarding
-            }
-        }
-        
-        when (currentScreen) {
+        when (uiState.currentScreen) {
             Screen.Loading -> {
                 // Show nothing while loading
             }
             Screen.Onboarding -> {
                 OnboardingScreen(
-                    onComplete = {
-                        userPreferences.setOnboardingCompleted(true)
-                        // Create guest user
-                        val guestUser = User("Joueur", "", UserLevel.NORMAL, isGuest = true)
-                        currentUser = guestUser
-                        currentScreen = Screen.Game
-                    }
+                    onComplete = { viewModel.onOnboardingComplete() }
                 )
             }
             Screen.Login -> {
                 LoginScreen(
-                    onLoginSuccess = { user ->
-                        currentUser = user
-                        userPreferences.saveUser(user)
-                        currentScreen = Screen.Game
-                    },
-                    onContinueAsGuest = {
-                        // Create guest user
-                        val guestUser = User("Joueur", "", UserLevel.NORMAL, isGuest = true)
-                        currentUser = guestUser
-                        currentScreen = Screen.Game
-                    }
+                    onLoginSuccess = { user -> viewModel.onLoginSuccess(user) },
+                    onContinueAsGuest = { viewModel.onContinueAsGuest() }
                 )
             }
             Screen.Profile -> {
-                val user = currentUser ?: User("Joueur", "", UserLevel.NORMAL, isGuest = true)
+                val user = uiState.currentUser ?: User("Joueur", "", UserLevel.NORMAL, isGuest = true)
                 
-                // If guest, redirect to login
-                if (user.isGuest) {
-                    LaunchedEffect(Unit) {
-                        currentScreen = Screen.Login
-                    }
-                } else {
-                    ProfileScreen(
-                        user = user,
-                        onLogout = {
-                            userPreferences.logout()
-                            currentUser = null
-                            // Reset onboarding flag to show it again
-                            userPreferences.setOnboardingCompleted(false)
-                            currentScreen = Screen.Onboarding
-                        },
-                        onBack = {
-                            currentScreen = Screen.Game
-                        }
-                    )
-                }
+                ProfileScreen(
+                    user = user,
+                    onLogout = { viewModel.onLogout() },
+                    onBack = { viewModel.onBackToGame() }
+                )
             }
             Screen.Game -> {
-                val user = currentUser ?: User("Joueur", "", UserLevel.NORMAL, isGuest = true)
+                val user = uiState.currentUser ?: User("Joueur", "", UserLevel.NORMAL, isGuest = true)
                 
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
@@ -121,9 +78,7 @@ fun StackGameApp(userPreferences: UserPreferences) {
                 ) { innerPadding ->
                     StackGame(
                         user = user,
-                        onLoginClick = {
-                            currentScreen = Screen.Profile
-                        },
+                        onLoginClick = { viewModel.onProfileClick() },
                         modifier = Modifier.padding(innerPadding)
                     )
                 }
