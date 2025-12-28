@@ -60,12 +60,12 @@ fun PurchaseScreen(
                 IconButton(onClick = onBack) {
                     Icon(
                         imageVector = Icons.Default.ArrowBack,
-                        contentDescription = "Retour",
+                        contentDescription = androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.profile_back_desc),
                         tint = Color.White
                     )
                 }
                 Text(
-                    text = "Acheter Premium",
+                    text = androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.purchase_title),
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
@@ -81,7 +81,7 @@ fun PurchaseScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "Améliorez votre expérience",
+                    text = androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.purchase_header),
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Medium,
                     color = Color.White,
@@ -137,15 +137,15 @@ fun PurchaseScreen(
                     ) {
                         when (page) {
                             0 -> PurchaseCard(
-                                title = "Premium",
+                                title = androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.purchase_premium_title),
                                 price = "1€",
                                 icon = "⭐",
                                 color = Color(0xFFFFD700),
                                 features = listOf(
-                                    "Sans publicité",
-                                    "Fonction fantôme",
-                                    "Vies bonus",
-                                    "Support du développeur"
+                                    androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.purchase_feature_ads),
+                                    androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.purchase_feature_ghost),
+                                    androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.purchase_feature_lives_bonus),
+                                    androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.purchase_feature_support)
                                 ),
                                 isOwned = hasPremium,
                                 isCurrent = currentLevel == UserLevel.PREMIUM,
@@ -158,16 +158,16 @@ fun PurchaseScreen(
                                 }
                             )
                             1 -> PurchaseCard(
-                                title = "Ultra",
+                                title = androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.purchase_ultra_title),
                                 price = "5€",
                                 icon = "💎",
                                 color = Color(0xFF00BCD4),
                                 features = listOf(
-                                    "Tous les avantages Premium",
-                                    "Fonction retour en arrière",
-                                    "Vies illimitées",
-                                    "Badge exclusif",
-                                    "Accès anticipé aux nouvelles fonctionnalités"
+                                    androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.purchase_feature_all_premium),
+                                    androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.purchase_feature_rewind),
+                                    androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.purchase_feature_lives_unlimited),
+                                    androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.purchase_feature_badge),
+                                    androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.purchase_feature_early_access)
                                 ),
                                 isOwned = hasUltra,
                                 isCurrent = currentLevel == UserLevel.ULTRA,
@@ -307,9 +307,9 @@ fun PurchaseCard(
             ) {
                 Text(
                     text = when {
-                        isCurrent -> "Niveau actuel"
-                        isOwned -> "Déjà acheté"
-                        else -> "Acheter $price"
+                        isCurrent -> androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.purchase_current_level)
+                        isOwned -> androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.purchase_owned)
+                        else -> androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.purchase_buy_prefix, price)
                     },
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,

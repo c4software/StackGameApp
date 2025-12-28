@@ -48,12 +48,12 @@ fun ProfileScreen(
                 IconButton(onClick = onBack) {
                     Icon(
                         imageVector = Icons.Default.ArrowBack,
-                        contentDescription = "Retour",
+                        contentDescription = androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.profile_back_desc),
                         tint = Color.White
                     )
                 }
                 Text(
-                    text = "Profil",
+                    text = androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.profile_title),
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
@@ -156,7 +156,7 @@ fun ProfileScreen(
                         shape = RoundedCornerShape(16.dp)
                     ) {
                         Text(
-                            text = "⭐ Passer Premium",
+                            text = androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.profile_purchase_btn),
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White

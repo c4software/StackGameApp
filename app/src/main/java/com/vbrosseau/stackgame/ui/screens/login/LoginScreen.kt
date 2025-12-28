@@ -1,6 +1,7 @@
 package com.vbrosseau.stackgame.ui.screens.login
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -49,7 +50,7 @@ fun LoginScreen(
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Retour",
+                contentDescription = androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.login_back_desc),
                 tint = Color.White
             )
         }
@@ -71,7 +72,7 @@ fun LoginScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    text = "Connexion",
+                    text = androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.login_title),
                     fontSize = 32.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
@@ -83,7 +84,7 @@ fun LoginScreen(
                 OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
-                    label = { Text("Email", color = Color.White.copy(alpha = 0.7f)) },
+                    label = { Text(androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.login_email_label), color = Color.White.copy(alpha = 0.7f)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -133,13 +134,31 @@ fun LoginScreen(
                         )
                     } else {
                         Text(
-                            text = "Se connecter",
+                            text = androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.login_btn),
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.Black
                         )
                     }
                 }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Create Account Link
+                val context = androidx.compose.ui.platform.LocalContext.current
+                Text(
+                    text = androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.login_create_account),
+                    color = Color.White,
+                    fontSize = 14.sp,
+                    textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline,
+                    modifier = Modifier.clickable {
+                        val intent = android.content.Intent(
+                            android.content.Intent.ACTION_VIEW,
+                            android.net.Uri.parse(com.vbrosseau.stackgame.BuildConfig.PURCHASE_URL)
+                        )
+                        context.startActivity(intent)
+                    }
+                )
             }
         }
     }

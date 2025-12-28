@@ -107,21 +107,17 @@ class MainViewModel(
     }
     
     fun onLoginBack() {
-        val currentUser = _uiState.value.currentUser
-        if (currentUser != null && currentUser.isGuest()) {
-            // Came from Game/Profile check -> Back to Game
-            _uiState.value = _uiState.value.copy(currentScreen = Screen.Game)
-        } else {
-            // Came from Onboarding -> Back to Onboarding
-            _uiState.value = _uiState.value.copy(currentScreen = Screen.Onboarding)
-        }
+        // Login is only accessible from Onboarding now
+        _uiState.value = _uiState.value.copy(currentScreen = Screen.Onboarding)
     }
     
     fun onProfileClick() {
         val currentUser = _uiState.value.currentUser
         if (currentUser != null && currentUser.isGuest()) {
-            _uiState.value = _uiState.value.copy(currentScreen = Screen.Login)
+            // Guest -> Redirect to Onboarding to show options/tutorial
+            _uiState.value = _uiState.value.copy(currentScreen = Screen.Onboarding)
         } else {
+            // Logged in -> Go to Profile
             _uiState.value = _uiState.value.copy(currentScreen = Screen.Profile)
         }
     }

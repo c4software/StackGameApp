@@ -1,0 +1,73 @@
+<resources>
+    <string name="app_name">Stack Game</string>
+    <string name="loading">Chargement...</string>
+    
+    <!-- Onboarding -->
+    <string name="onboarding_title">Stack Game</string>
+    <string name="onboarding_p1_title">Empilez vers les étoiles</string>
+    <string name="onboarding_p1_desc">Construisez la tour la plus haute possible en alignant parfaitement les blocs.</string>
+    <string name="onboarding_p2_title">Maîtrisez la physique</string>
+    <string name="onboarding_p2_desc">Attention au déséquilibre ! La physique réaliste rend chaque bloc crucial.</string>
+    <string name="onboarding_p3_title">Prêt à jouer ?</string>
+    <string name="onboarding_login_btn">Se connecter</string>
+    <string name="onboarding_guest_btn">Jouer en invité</string>
+    <string name="onboarding_next_btn">Suivant</string>
+    
+    <!-- Login -->
+    <string name="login_title">Connexion</string>
+    <string name="login_email_label">Email</string>
+    <string name="login_btn">Se connecter</string>
+    <string name="login_back_desc">Retour</string>
+    <string name="login_create_account">Pas de compte ?</string>
+    
+    <!-- Profile -->
+    <string name="profile_title">Profil</string>
+    <string name="profile_purchase_btn">⭐ Passer Premium</string>
+    <string name="profile_back_desc">Retour</string>
+
+    <!-- Purchase -->
+    <string name="purchase_title">Acheter Premium</string>
+    <string name="purchase_header">Améliorez votre expérience</string>
+    <string name="purchase_premium_title">Premium</string>
+    <string name="purchase_ultra_title">Ultra</string>
+    <string name="purchase_current_level">Niveau actuel</string>
+    <string name="purchase_owned">Déjà acheté</string>
+    <string name="purchase_buy_prefix">Acheter %1$s</string>
+    <string name="purchase_feature_ads">Sans publicité</string>
+    <string name="purchase_feature_ghost">Fonction fantôme</string>
+    <string name="purchase_feature_lives_bonus">Vies bonus</string>
+    <string name="purchase_feature_support">Support du développeur</string>
+    <string name="purchase_feature_all_premium">Tous les avantages Premium</string>
+    <string name="purchase_feature_rewind">Fonction retour en arrière</string>
+    <string name="purchase_feature_lives_unlimited">Vies illimitées</string>
+    <string name="purchase_feature_badge">Badge exclusif</string>
+    <string name="purchase_feature_early_access">Accès anticipé aux nouvelles fonctionnalités</string>
+
+    <!-- Game / Ad Overlay -->
+    <string name="ad_premium_title">Passez à PREMIUM!</string>
+    <string name="ad_ultra_title">Passez à ULTRA!</string>
+    <string name="ad_enjoy_title">Profitez de:</string>
+    <string name="ad_best_title">Le meilleur niveau:</string>
+    <string name="ad_remove_message">Publicité - Passez à PREMIUM pour la retirer</string>
+    <string name="ad_buy_premium_btn">Passer Premium - 1€</string>
+    <string name="ad_close_in">Fermeture dans %1$d secondes...</string>
+    <string name="ad_close_now">Peut-être plus tard</string>
+    <string name="ad_close_desc">Fermer</string>
+    <string name="ad_feature_shadow">✓ Ombre de placement</string>
+    <string name="ad_feature_no_ads">✓ Sans publicités</string>
+    <string name="ad_feature_lives_4">✓ 4 vies maximum</string>
+    <string name="ad_feature_lives_5">✓ 5 vies maximum</string>
+    <string name="ad_feature_experience">✓ Expérience premium</string>
+    <string name="ad_feature_all_premium">✓ Tout PREMIUM</string>
+    <string name="ad_feature_rewind">✓ Fonction Rewind</string>
+    <string name="ad_feature_ultimate">✓ Expérience ultime</string>
+    <string name="game_over">Game Over, %1$s!</string>
+    <string name="tap_to_restart">APPUYEZ POUR REJOUER</string>
+    <string name="long_press_rewind">MAINTENIR POUR REWIND</string>
+    
+    <!-- ViewModel Errors -->
+    <string name="error_user_not_found">Utilisateur non trouvé</string>
+    <string name="error_no_internet">Pas de connexion internet</string>
+    <string name="error_server_down">Serveur inaccessible</string>
+    <string name="error_unknown_prefix">Erreur: %1$s</string>
+</resources>
