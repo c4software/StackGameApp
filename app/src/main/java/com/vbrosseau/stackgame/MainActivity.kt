@@ -98,15 +98,13 @@ fun StackGameApp(viewModel: MainViewModel) {
                 val user = uiState.currentUser ?: User("guest", "", UserLevel.NORMAL)
                 
                 Scaffold(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .windowInsetsPadding(WindowInsets(0, 0, 0, 0)),
+                    modifier = Modifier.fillMaxSize(),
                     bottomBar = {
                         if (user.showsAds()) {
                             AdBanner()
                         }
                     },
-                    contentWindowInsets = WindowInsets(0, 0, 0, 0)
+                    contentWindowInsets = WindowInsets.navigationBars
                 ) { innerPadding ->
                     StackGame(
                         user = user,

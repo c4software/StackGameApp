@@ -65,6 +65,11 @@ fun StackGame(
         }
     }
 
+    LaunchedEffect(gameState.isGameOver) {
+        if (gameState.isGameOver && user.showsAds()) {
+            viewModel.showAdOverlay()
+        }
+    }
 
     var lastTime by remember { mutableLongStateOf(0L) }
     
@@ -96,6 +101,8 @@ fun StackGame(
         ) {
 
             if (size.width == 0f) return@Canvas
+
+            viewModel.initGame(size.width, size.height, density)
 
 
             val bgBrush = when {
@@ -229,8 +236,8 @@ fun StackGame(
                     }
                     val context = view.context
                     val gameOverText = context.getString(com.vbrosseau.stackgame.R.string.game_over, user.displayName)
-                    drawText(gameOverText, size.width / 2, size.height / 2 - 40f, subPaint)
-                    drawText(context.getString(com.vbrosseau.stackgame.R.string.tap_to_restart), size.width / 2, size.height / 2 + 20f, subPaint)
+                    drawText(gameOverText, size.width / 2, size.height / 3 - 40f, subPaint)
+                    drawText(context.getString(com.vbrosseau.stackgame.R.string.tap_to_restart), size.width / 2, size.height / 3 + 20f, subPaint)
                 }
             }
         }
