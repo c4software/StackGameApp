@@ -67,8 +67,10 @@
     <string name="ad_feature_all_premium">✓ Tout PREMIUM</string>
     <string name="ad_feature_rewind">✓ Fonction Rewind</string>
     <string name="ad_feature_ultimate">✓ Expérience ultime</string>
+    <string name="ad_banner_text">Publicité - Passez à PREMIUM pour la retirer</string>
     <string name="game_over">Game Over, %1$s!</string>
     <string name="tap_to_restart">APPUYEZ POUR REJOUER</string>
+    <string name="celebration_bravo">BRAVO %1$s ! 🎉</string>
 
     <!-- ViewModel Errors -->
     <string name="error_user_not_found">Utilisateur non trouvé</string>

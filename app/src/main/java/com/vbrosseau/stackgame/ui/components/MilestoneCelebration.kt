@@ -46,7 +46,10 @@ fun MilestoneCelebration(
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = "BRAVO ${firstName.uppercase()}! 🎉",
+            text = androidx.compose.ui.res.stringResource(
+                com.vbrosseau.stackgame.R.string.celebration_bravo,
+                firstName.uppercase()
+            ),
             fontSize = (32 * scale).sp,
             fontWeight = FontWeight.Bold,
             color = Color(0xFFFFD700).copy(alpha = alpha),

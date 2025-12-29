@@ -182,7 +182,7 @@ private fun PremiumAdContent() {
     )
     
     Text(
-        text = "Passez à PREMIUM!",
+        text = androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.ad_premium_title),
         fontSize = 28.sp,
         fontWeight = FontWeight.Bold,
         color = Color.White,
@@ -192,7 +192,7 @@ private fun PremiumAdContent() {
     Spacer(modifier = Modifier.height(16.dp))
     
     Text(
-        text = "Profitez de:",
+        text = androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.ad_enjoy_title),
         fontSize = 18.sp,
         color = Color.White,
         fontWeight = FontWeight.Medium
@@ -204,10 +204,10 @@ private fun PremiumAdContent() {
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        AdFeatureItem("✓ Ombre de placement")
-        AdFeatureItem("✓ Sans publicités")
-        AdFeatureItem("✓ 4 vies maximum")
-        AdFeatureItem("✓ Expérience premium")
+        AdFeatureItem(androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.ad_feature_shadow))
+        AdFeatureItem(androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.ad_feature_no_ads))
+        AdFeatureItem(androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.ad_feature_lives_4))
+        AdFeatureItem(androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.ad_feature_experience))
     }
 }
 
@@ -220,7 +220,7 @@ private fun UltraAdContent() {
     )
     
     Text(
-        text = "Passez à ULTRA!",
+        text = androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.ad_ultra_title),
         fontSize = 28.sp,
         fontWeight = FontWeight.Bold,
         color = Color.White,
@@ -230,7 +230,7 @@ private fun UltraAdContent() {
     Spacer(modifier = Modifier.height(16.dp))
     
     Text(
-        text = "Le meilleur niveau:",
+        text = androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.ad_best_title),
         fontSize = 18.sp,
         color = Color.White,
         fontWeight = FontWeight.Medium
@@ -242,10 +242,10 @@ private fun UltraAdContent() {
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        AdFeatureItem("✓ Tout PREMIUM")
-        AdFeatureItem("✓ Fonction Rewind")
-        AdFeatureItem("✓ 5 vies maximum")
-        AdFeatureItem("✓ Expérience ultime")
+        AdFeatureItem(androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.ad_feature_all_premium))
+        AdFeatureItem(androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.ad_feature_rewind))
+        AdFeatureItem(androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.ad_feature_lives_5))
+        AdFeatureItem(androidx.compose.ui.res.stringResource(com.vbrosseau.stackgame.R.string.ad_feature_ultimate))
     }
 }
 
