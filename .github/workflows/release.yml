@@ -1,4 +1,4 @@
-name: Build and Release APK
+name: Build and Release APK & AAB
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   build:
-    name: Build Signed APK
+    name: Build Signed APK & AAB
     runs-on: ubuntu-latest
     
     steps:
@@ -51,18 +51,20 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
       
-      - name: Build Release APK
+      - name: Build Release APK & AAB
         env:
           KEYSTORE_FILE: ${{ github.workspace }}/stack-game.keystore
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: ./gradlew assembleRelease --stacktrace
+        run: ./gradlew assembleRelease bundleRelease --stacktrace
       
-      - name: Rename APK
+      - name: Rename APK & AAB
         run: |
           mv app/build/outputs/apk/release/app-release.apk \
              app/build/outputs/apk/release/StackGame-${{ steps.version.outputs.VERSION_NAME }}.apk
+          mv app/build/outputs/bundle/release/app-release.aab \
+             app/build/outputs/bundle/release/StackGame-${{ steps.version.outputs.VERSION_NAME }}.aab
       
       - name: Create Release
         id: create_release
@@ -94,3 +96,13 @@ jobs:
           asset_path: app/build/outputs/apk/release/StackGame-${{ steps.version.outputs.VERSION_NAME }}.apk
           asset_name: StackGame-${{ steps.version.outputs.VERSION_NAME }}.apk
           asset_content_type: application/vnd.android.package-archive
+      
+      - name: Upload Release AAB
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: app/build/outputs/bundle/release/StackGame-${{ steps.version.outputs.VERSION_NAME }}.aab
+          asset_name: StackGame-${{ steps.version.outputs.VERSION_NAME }}.aab
+          asset_content_type: application/octet-stream
