@@ -18,41 +18,47 @@ import androidx.compose.ui.unit.sp
 
 @Composable
 fun AdBanner(modifier: Modifier = Modifier) {
-    Card(
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(60.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF424242)
-        ),
-        shape = RoundedCornerShape(0.dp)
+            .background(
+                Brush.horizontalGradient(
+                    listOf(Color(0xFF424242), Color(0xFF616161))
+                )
+            )
+            .windowInsetsPadding(WindowInsets.navigationBars)
     ) {
-        Box(
+        Card(
             modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.horizontalGradient(
-                        listOf(Color(0xFF424242), Color(0xFF616161))
-                    )
-                ),
-            contentAlignment = Alignment.Center
+                .fillMaxWidth()
+                .height(60.dp)
+                .align(Alignment.TopCenter),
+            colors = CardDefaults.cardColors(
+                containerColor = Color.Transparent
+            ),
+            shape = RoundedCornerShape(0.dp)
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = "📢",
-                    fontSize = 24.sp,
-                    modifier = Modifier.padding(end = 8.dp)
-                )
-                Text(
-                    text = "Publicité - Passez à PREMIUM pour la retirer",
-                    fontSize = 14.sp,
-                    color = Color.White,
-                    textAlign = TextAlign.Center,
-                    fontWeight = FontWeight.Medium
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "📢",
+                        fontSize = 24.sp,
+                        modifier = Modifier.padding(end = 8.dp)
+                    )
+                    Text(
+                        text = "Publicité - Passez à PREMIUM pour la retirer",
+                        fontSize = 14.sp,
+                        color = Color.White,
+                        textAlign = TextAlign.Center,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
         }
     }

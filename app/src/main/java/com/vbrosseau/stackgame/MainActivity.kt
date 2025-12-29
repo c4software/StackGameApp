@@ -103,16 +103,13 @@ fun StackGameApp(viewModel: MainViewModel) {
                         if (user.showsAds()) {
                             AdBanner()
                         }
-                    },
-                    contentWindowInsets = WindowInsets.navigationBars
+                    }
                 ) { innerPadding ->
                     StackGame(
                         user = user,
                         onLoginClick = { viewModel.onProfileClick() },
                         onPurchaseClick = { viewModel.onPurchaseClick() },
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(innerPadding)
+                        modifier = Modifier.fillMaxSize()
                     )
                 }
             }

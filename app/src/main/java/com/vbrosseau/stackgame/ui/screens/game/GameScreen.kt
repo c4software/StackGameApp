@@ -220,7 +220,7 @@ fun StackGame(
                 if (!gameState.isGameOver && gameState.stack.isNotEmpty()) {
                     drawRect(
                         color = Color.Red.copy(alpha = 0.9f),
-                        topLeft = Offset(currentBlock.x, currentBlock.y),
+                        topLeft = Offset(currentBlock.x, (currentBlock.y).coerceAtLeast(70f)),
                         size = Size(currentBlock.width, viewModel.blockHeight)
                     )
                 }
