@@ -4,6 +4,7 @@ data class GameState(
     val score: Int = 0,
     val lives: Int = 3,
     val stack: List<Block> = emptyList(),
+    val fallingPieces: List<FallingPiece> = emptyList(),
     val isGameOver: Boolean = false,
     val cameraY: Float = 0f,
     val shakeTime: Float = 0f,
