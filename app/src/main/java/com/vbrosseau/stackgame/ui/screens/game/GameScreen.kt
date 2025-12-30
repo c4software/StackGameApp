@@ -24,9 +24,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vbrosseau.stackgame.models.User
 import com.vbrosseau.stackgame.ui.components.GameOverAdOverlay
 import com.vbrosseau.stackgame.ui.components.MilestoneCelebration
-import com.vbrosseau.stackgame.ui.screens.game.IsometricUtils.drawBlockHighlight
-import com.vbrosseau.stackgame.ui.screens.game.IsometricUtils.drawIsometricBlock
-import com.vbrosseau.stackgame.ui.screens.game.IsometricUtils.drawIsometricWindows
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import org.koin.androidx.compose.koinViewModel
@@ -107,7 +104,7 @@ fun StackGame(
 
             viewModel.initGame(size.width, size.height, density)
 
-            // Background gradient based on score
+
             val bgBrush = when {
                 gameState.score < 10 -> Brush.verticalGradient(listOf(Color(0xFF3E2723), Color(0xFF4E342E)))
                 gameState.score < 25 -> Brush.verticalGradient(listOf(Color(0xFF1976D2), Color(0xFFBBDEFB)))
@@ -115,7 +112,7 @@ fun StackGame(
             }
             drawRect(brush = bgBrush, size = size)
 
-            // Stars in space
+
             if (gameState.score > 15) {
                 val starAlphaMultiplier = ((gameState.score - 15) / 10f).coerceIn(0f, 1f)
                 stars.forEach { star ->
@@ -128,7 +125,7 @@ fun StackGame(
                 }
             }
             
-            // Screen shake effect
+
             val shakeTime = gameState.shakeTime
             val offsetX = if (shakeTime > 0) (Random.nextFloat() - 0.5f) * shakeTime * 2 else 0f
             val offsetY = if (shakeTime > 0) (Random.nextFloat() - 0.5f) * shakeTime * 2 else 0f
@@ -136,50 +133,67 @@ fun StackGame(
             translate(left = offsetX, top = offsetY) {
                 translate(left = 0f, top = gameState.cameraY) {
 
-                    // Draw stacked blocks (bottom to top for proper layering)
                     gameState.stack.forEach { block ->
-                        // Draw isometric block
-                        drawIsometricBlock(
-                            left = block.rect.left,
-                            top = block.rect.top,
-                            width = block.rect.width,
-                            height = block.rect.height,
-                            depth = block.depth,
-                            color = block.color
+
+                        if (block.rotation != 0f) {
+                            val centerX = block.rect.center.x
+                            val centerY = block.rect.center.y
+                            drawContext.canvas.save()
+                            drawContext.canvas.translate(centerX, centerY)
+                            drawContext.canvas.rotate(block.rotation)
+                            drawContext.canvas.translate(-centerX, -centerY)
+                        }
+                        
+
+                        drawRect(
+                            color = block.color,
+                            topLeft = Offset(block.rect.left, block.rect.top),
+                            size = Size(block.rect.width, block.rect.height)
                         )
                         
-                        // Draw windows on front face
-                        drawIsometricWindows(
-                            left = block.rect.left,
-                            top = block.rect.top,
-                            blockWidth = block.rect.width,
-                            blockHeight = block.rect.height,
-                            windowColor = Color.Black.copy(alpha = 0.15f),
-                            score = gameState.score
+
+                        drawRect(
+                            color = Color.White.copy(alpha = 0.2f),
+                            topLeft = Offset(block.rect.left, block.rect.top),
+                            size = Size(block.rect.width, 10f)
                         )
                         
-                        // Draw highlight for 3D effect
-                        drawBlockHighlight(
-                            left = block.rect.left,
-                            top = block.rect.top,
-                            width = block.rect.width,
-                            depth = block.depth
-                        )
+
+                        val windowCount = (block.rect.width / 35f).toInt()
+                        if (windowCount > 0) {
+                            val windowHeight = viewModel.blockHeight * 0.5f
+                            val windowY = block.rect.top + (viewModel.blockHeight - windowHeight) / 2
+                            val totalGapsWidth = block.rect.width * 0.3f
+                            val gapWidth = totalGapsWidth / (windowCount + 1)
+                            val windowWidth = (block.rect.width - totalGapsWidth) / windowCount
+
+                            val windowColor = if (gameState.score > 25) Color.Yellow.copy(alpha = 0.6f) else Color.Black.copy(alpha = 0.15f)
+
+                            for (i in 0 until windowCount) {
+                                val windowX = block.rect.left + ((i + 1) * gapWidth) + (i * windowWidth)
+                                drawRect(
+                                    color = windowColor,
+                                    topLeft = Offset(windowX, windowY),
+                                    size = Size(windowWidth, windowHeight)
+                                )
+                            }
+                        }
+                        
+
+                        if (!block.isStable && !block.isFalling) {
+                             drawRect(
+                                color = Color.Red.copy(alpha = 0.15f),
+                                topLeft = Offset(block.rect.left, block.rect.top),
+                                size = Size(block.rect.width, block.rect.height)
+                            )
+                        }
+
+                        if (block.rotation != 0f) {
+                            drawContext.canvas.restore()
+                        }
                     }
                     
-                    // Draw falling pieces (sliced off parts)
-                    gameState.fallingPieces.forEach { piece ->
-                        drawIsometricBlock(
-                            left = piece.rect.left,
-                            top = piece.rect.top,
-                            width = piece.rect.width,
-                            height = piece.rect.height,
-                            depth = piece.depth,
-                            color = piece.color.copy(alpha = 0.8f)
-                        )
-                    }
-                    
-                    // Ghost block (landing preview)
+
                     if (!gameState.isGameOver && !currentBlock.isFalling && gameState.stack.isNotEmpty() && user.hasGhostFeature()) {
                         val shadowAlpha = (0.3f - (gameState.score / 100f)).coerceIn(0f, 0.3f)
                         if (shadowAlpha > 0f) {
@@ -191,7 +205,7 @@ fun StackGame(
                         }
                     }
                     
-                    // Particles
+
                     gameState.particles.forEach { p ->
                         drawCircle(
                             color = p.color.copy(alpha = p.life),
@@ -201,23 +215,18 @@ fun StackGame(
                     }
                 }
                 
-                // Current moving/falling block (always on top)
+
+                
                 if (!gameState.isGameOver && gameState.stack.isNotEmpty()) {
-                    val hue = (gameState.score * 5f) % 360f
-                    val blockColor = Color.hsv(hue, 0.7f, 0.9f)
-                    
-                    drawIsometricBlock(
-                        left = currentBlock.x,
-                        top = (currentBlock.y).coerceAtLeast(70f),
-                        width = currentBlock.width,
-                        height = viewModel.blockHeight,
-                        depth = viewModel.blockDepth,
-                        color = blockColor
+                    drawRect(
+                        color = Color.Red.copy(alpha = 0.9f),
+                        topLeft = Offset(currentBlock.x, (currentBlock.y).coerceAtLeast(70f)),
+                        size = Size(currentBlock.width, viewModel.blockHeight)
                     )
                 }
             }
             
-            // Game over text
+
             if (gameState.isGameOver) {
                 drawContext.canvas.nativeCanvas.apply {
                     val subPaint = android.graphics.Paint().apply {
@@ -233,7 +242,7 @@ fun StackGame(
             }
         }
         
-        // HUD (Score and Lives)
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -273,7 +282,8 @@ fun StackGame(
         }
     }
     
-    // Ad overlay
+
+    
     if (gameState.showAdOverlay && user.showsAds()) {
 
         var adTimerRemaining by remember { mutableLongStateOf(GameViewModel.AD_BLOCKING_DURATION) }

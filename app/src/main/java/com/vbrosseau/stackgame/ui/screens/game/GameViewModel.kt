@@ -5,6 +5,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vbrosseau.stackgame.models.User
+import com.vbrosseau.stackgame.models.UserLevel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,7 +19,11 @@ import kotlin.math.min
 import kotlin.math.pow
 import kotlin.random.Random
 
+
+
 class GameViewModel : ViewModel() {
+    
+
     
     private val _gameState = MutableStateFlow(GameState())
     val gameState: StateFlow<GameState> = _gameState.asStateFlow()
@@ -26,6 +31,7 @@ class GameViewModel : ViewModel() {
     private val _currentBlockState = MutableStateFlow(CurrentBlockState())
     val currentBlockState: StateFlow<CurrentBlockState> = _currentBlockState.asStateFlow()
     
+
     private val _gameEffects = Channel<GameEffect>(Channel.BUFFERED)
     val gameEffects = _gameEffects.receiveAsFlow()
 
@@ -38,19 +44,24 @@ class GameViewModel : ViewModel() {
         val isFalling: Boolean = false
     )
     
+
     companion object {
         const val AD_BLOCKING_DURATION = 5000L
 
         const val BASE_BLOCK_HEIGHT = 40f
-        const val BASE_BLOCK_DEPTH = 30f
         const val BASE_INITIAL_SPEED = 4f
         const val BASE_SPEED_INCREMENT = 0.15f
         const val PERFECT_TOLERANCE_DP = 8f
         const val BASE_GRAVITY = 0.4f
         const val BASE_FALL_SPEED = 15f
+        const val STABILITY_THRESHOLD = 0.35f
+        const val MAX_ANGULAR_VELOCITY = 5f
         const val BASE_PHYSICS_GRAVITY = 0.6f
+        const val ANGULAR_DAMPING = 0.98f
         
         const val INITIAL_LIVES = 3
+        const val ULTRA_MAX_LIVES = 5
+        const val PREMIUM_MAX_LIVES = 4
         const val NORMAL_MAX_LIVES = 3
         const val LIFE_BONUS_INTERVAL = 20
         const val DIFFICULTY_INTERVAL = 10
@@ -58,14 +69,12 @@ class GameViewModel : ViewModel() {
         const val MIN_BLOCK_WIDTH_RATIO = 0.25f 
     }
     
+
     var density = 1f
         private set
         
     val blockHeight: Float
         get() = BASE_BLOCK_HEIGHT * density
-        
-    val blockDepth: Float
-        get() = BASE_BLOCK_DEPTH * density
         
     private val initialSpeed: Float
         get() = BASE_INITIAL_SPEED * density
@@ -85,19 +94,24 @@ class GameViewModel : ViewModel() {
     private val physicsGravity: Float
         get() = BASE_PHYSICS_GRAVITY * density
 
+    
     private var screenWidth = 0f
     private var screenHeight = 0f
     
     private val history = ArrayDeque<GameSnapshot>()
     private var lastMilestone = 0
     private var lastLifeBonus = 0
+    
+
 
     fun initGame(width: Float, height: Float, screenDensity: Float) {
+
         if ((screenWidth != width || screenHeight != height || density != screenDensity) && width > 0f && height > 0f) {
             screenWidth = width
             screenHeight = height
             density = screenDensity
             
+
             if (_gameState.value.stack.isEmpty()) {
                 resetGame()
             }
@@ -115,15 +129,13 @@ class GameViewModel : ViewModel() {
                 right = (screenWidth - initialWidth) / 2 + initialWidth, 
                 bottom = screenHeight
             ),
-            color = Color.DarkGray,
-            depth = blockDepth
+            color = Color.DarkGray
         )
         
         _gameState.value = GameState(
             score = 0,
             lives = INITIAL_LIVES,
             stack = listOf(initialBlock),
-            fallingPieces = emptyList(),
             isGameOver = false
         )
         
@@ -140,11 +152,14 @@ class GameViewModel : ViewModel() {
         lastMilestone = 0
         lastLifeBonus = 0
     }
+    
+
 
     fun handleTap(user: User) {
         val state = _gameState.value
         if (state.isGameOver) {
             if (user.showsAds() && state.showAdOverlay) {
+
                 return
             }
             resetGame()
@@ -167,8 +182,7 @@ class GameViewModel : ViewModel() {
                 it.copy(
                     stack = snapshot.stack,
                     score = snapshot.score,
-                    cameraY = 0f,
-                    fallingPieces = emptyList()
+                    cameraY = 0f
                 )
             }
             
@@ -186,58 +200,39 @@ class GameViewModel : ViewModel() {
             sendEffect(GameEffect.VibrateHeavy)
         }
     }
+    
 
     fun updateGameLoop() {
         if (screenWidth == 0f) return
         
+
         _gameState.update { currentState ->
             var nextState = currentState
             
-            // Update particles
+
             nextState = calculateParticles(nextState)
             
-            // Update shake effect
+
             if (nextState.shakeTime > 0) {
                 nextState = nextState.copy(shakeTime = nextState.shakeTime - 1f)
             }
             
-            // Update falling pieces
-            nextState = updateFallingPieces(nextState)
-            
             if (nextState.stack.isNotEmpty() && !nextState.isGameOver) {
-                // Update camera
-                nextState = calculateCamera(screenHeight, nextState)
+
+                 nextState = calculatePhysics(nextState)
+                 
+
+                 nextState = calculateCamera(screenHeight, nextState)
             }
             
             nextState
         }
 
-        // Update Current Block
+        // 5. Update Current Block (Separate StateFlow)
         val state = _gameState.value
         if (state.stack.isNotEmpty() && !state.isGameOver) {
             updateCurrentBlock()
         }
-    }
-    
-    private fun updateFallingPieces(state: GameState): GameState {
-        if (state.fallingPieces.isEmpty()) return state
-        
-        val updatedPieces = state.fallingPieces.mapNotNull { piece ->
-            val newVelY = piece.velocityY + physicsGravity
-            val newTop = piece.rect.top + newVelY
-            
-            // Remove piece if it's off screen
-            if (newTop > screenHeight + 200) {
-                null
-            } else {
-                piece.copy(
-                    rect = piece.rect.copy(top = newTop, bottom = newTop + blockHeight),
-                    velocityY = newVelY
-                )
-            }
-        }
-        
-        return state.copy(fallingPieces = updatedPieces)
     }
 
     private fun updateCurrentBlock() {
@@ -256,6 +251,7 @@ class GameViewModel : ViewModel() {
             var newX = current.x + current.moveSpeed * current.moveDirection
             var newDir = current.moveDirection
             
+
             if ((newX > screenWidth && current.moveDirection > 0) || (newX < -current.width && current.moveDirection < 0)) {
                 newDir *= -1f
             }
@@ -277,15 +273,82 @@ class GameViewModel : ViewModel() {
     }
     
     private fun calculateParticles(state: GameState): GameState {
-        val living = state.particles.mapNotNull { p ->
-            p.x += p.vx
-            p.y += p.vy
-            p.vy += gravity
-            p.life -= 0.02f
-            if (p.life > 0) p else null
-        }
-        return state.copy(particles = living)
+         val living = state.particles.mapNotNull { p ->
+             p.x += p.vx
+             p.y += p.vy
+             p.vy += gravity
+             p.life -= 0.02f
+             if (p.life > 0) p else null
+         }
+         return state.copy(particles = living)
     }
+
+    private fun calculatePhysics(state: GameState): GameState {
+        val stack = state.stack
+        var hasUnstableBlocks = false
+        var lives = state.lives
+        var isGameOver = false
+        
+
+        val newStack = ArrayList<Block>(stack.size)
+        if (stack.isNotEmpty()) newStack.add(stack[0])
+        
+        for (i in 1 until stack.size) {
+            var block = stack[i]
+            
+            if (!block.isStable && !block.isFalling) {
+                hasUnstableBlocks = true
+                block = block.copy(
+                    rotation = block.rotation + block.angularVelocity,
+                    angularVelocity = block.angularVelocity * ANGULAR_DAMPING
+                )
+                
+                if (abs(block.rotation) > 15f) {
+                    block = block.copy(isFalling = true, velocityY = 0f)
+                }
+            }
+            
+            if (block.isFalling) {
+                val newVelY = block.velocityY + physicsGravity
+                val newTop = block.rect.top + newVelY
+                val newRect = block.rect.copy(top = newTop, bottom = newTop + blockHeight)
+                 
+                block = block.copy(
+                    rect = newRect,
+                    velocityY = newVelY,
+                    rotation = block.rotation + block.angularVelocity,
+                    angularVelocity = block.angularVelocity + if (block.angularVelocity > 0) 0.2f else -0.2f
+                )
+                
+
+                if (newTop > screenHeight + 100) {
+                    lives--
+                    sendEffect(GameEffect.VibrateFail)
+                    if (lives <= 0) isGameOver = true
+
+                    continue 
+                }
+            }
+            
+            newStack.add(block)
+        }
+        
+
+        if (!hasUnstableBlocks && newStack.size > 1 && lives > 0) {
+             if (!checkTowerBalance(newStack)) {
+                 isGameOver = true
+                 sendEffect(GameEffect.VibrateFail)
+             }
+        }
+        
+        if (isGameOver) {
+            return state.copy(isGameOver = true, shakeTime = 15f, lives = max(0, lives), stack = newStack)
+        } else {
+             return state.copy(lives = lives, stack = newStack)
+        }
+    }
+    
+
 
     private fun landBlock() {
         val state = _gameState.value
@@ -294,189 +357,140 @@ class GameViewModel : ViewModel() {
         
         val landedRect = Rect(current.x, topBlock.rect.top - blockHeight, current.x + current.width, topBlock.rect.top)
         
-        // Calculate overlap
         val overlapLeft = max(topBlock.rect.left, landedRect.left)
         val overlapRight = min(topBlock.rect.right, landedRect.right)
         val overlapWidth = overlapRight - overlapLeft
         
         if (overlapWidth <= 0) {
-            // Complete miss - lose a life
-            val newLives = state.lives - 1
+
+            _gameState.update { it.copy(isGameOver = true, shakeTime = 15f) }
             sendEffect(GameEffect.VibrateFail)
-            
-            if (newLives <= 0) {
-                // No more lives - game over
-                _gameState.update { it.copy(isGameOver = true, shakeTime = 15f, lives = 0) }
-            } else {
-                // Still have lives - enlarge the last block and continue
-                val enlargedWidth = (topBlock.rect.width * 1.5f).coerceAtMost(screenWidth * 0.8f)
-                val widthDiff = enlargedWidth - topBlock.rect.width
-                val newLeft = topBlock.rect.left - widthDiff / 2
-                val newRight = topBlock.rect.right + widthDiff / 2
-                
-                val enlargedBlock = topBlock.copy(
-                    rect = Rect(
-                        left = newLeft.coerceAtLeast(0f),
-                        top = topBlock.rect.top,
-                        right = newRight.coerceAtMost(screenWidth),
-                        bottom = topBlock.rect.bottom
-                    )
-                )
-                
-                // Update the stack with enlarged block
-                val newStack = state.stack.dropLast(1) + enlargedBlock
-                
-                _gameState.update { 
-                    it.copy(
-                        lives = newLives, 
-                        shakeTime = 10f,
-                        stack = newStack
-                    ) 
-                }
-                
-                // Reset current block to match enlarged block width
-                val nextWidth = enlargedBlock.rect.width
-                val newScore = state.score
-                _currentBlockState.update {
-                    it.copy(
-                        isFalling = false,
-                        y = 250f,
-                        width = nextWidth,
-                        x = if (newScore % 2 == 0) -nextWidth else screenWidth,
-                        moveDirection = if (newScore % 2 == 0) 1f else -1f
-                    )
-                }
-            }
         } else {
+
             val score = state.score
+
             history.add(GameSnapshot(state.stack, score, current.width, current.moveSpeed, state.cameraY))
             
             val diff = abs(landedRect.center.x - topBlock.rect.center.x)
             val isPerfect = diff < perfectTolerance
             
+
             sendEffect(if (isPerfect) GameEffect.VibrateSuccess else GameEffect.VibrateMedium)
             
-            // Color based on score
+
             val hue = (score * 5f) % 360f
             val newColor = Color.hsv(hue, 0.7f, 0.9f)
             
-            // Determine falling pieces and new block
-            var newFallingPieces = state.fallingPieces.toMutableList()
-            var newBlockRect: Rect
-            var newBlockWidth: Float
-            
-            if (isPerfect) {
-                // Perfect placement - keep full width
-                newBlockRect = landedRect
-                newBlockWidth = landedRect.width
-                spawnParticles(landedRect, Color.White, 15)
-            } else {
-                // Slice off the overhanging part
-                val overhangLeft = max(0f, topBlock.rect.left - landedRect.left)
-                val overhangRight = max(0f, landedRect.right - topBlock.rect.right)
-                
-                // Create the sliced (falling) piece
-                if (overhangLeft > 0) {
-                    // Left overhang falls
-                    val fallingRect = Rect(
-                        left = landedRect.left,
-                        top = landedRect.top,
-                        right = landedRect.left + overhangLeft,
-                        bottom = landedRect.bottom
-                    )
-                    newFallingPieces.add(FallingPiece(
-                        rect = fallingRect,
-                        color = newColor,
-                        depth = blockDepth,
-                        velocityY = 2f
-                    ))
-                    spawnParticles(fallingRect, newColor.copy(alpha = 0.5f), 8)
-                }
-                
-                if (overhangRight > 0) {
-                    // Right overhang falls
-                    val fallingRect = Rect(
-                        left = topBlock.rect.right,
-                        top = landedRect.top,
-                        right = landedRect.right,
-                        bottom = landedRect.bottom
-                    )
-                    newFallingPieces.add(FallingPiece(
-                        rect = fallingRect,
-                        color = newColor,
-                        depth = blockDepth,
-                        velocityY = 2f
-                    ))
-                    spawnParticles(fallingRect, newColor.copy(alpha = 0.5f), 8)
-                }
-                
-                // The remaining block is only the overlap
-                newBlockRect = Rect(
-                    left = overlapLeft,
-                    top = landedRect.top,
-                    right = overlapRight,
-                    bottom = landedRect.bottom
-                )
-                newBlockWidth = overlapWidth
-            }
-            
             val newBlock = Block(
-                rect = newBlockRect,
-                color = newColor,
-                depth = blockDepth
+                rect = landedRect,
+                color = newColor
             )
             
-            var newScore = score + 1
+
+            var isStable = true
+            var angularVel = 0f
+            
+            if (!checkBlockStability(newBlock, topBlock)) {
+                isStable = false
+                val overhangLeft = max(0f, topBlock.rect.left - landedRect.left)
+                val overhangRight = max(0f, landedRect.right - topBlock.rect.right)
+                val direction = if (overhangLeft > overhangRight) -1f else 1f
+                angularVel = direction * (max(overhangLeft, overhangRight) / landedRect.width) * MAX_ANGULAR_VELOCITY
+            }
+            
+            val finalBlock = newBlock.copy(isStable = isStable, angularVelocity = angularVel)
+            
+
+            if (isPerfect) {
+                spawnParticles(finalBlock.rect, Color.White, 15)
+            } else if (!isStable) {
+                spawnParticles(finalBlock.rect, newColor.copy(alpha = 0.3f), 8)
+            }
+            
+            var newScore = score
             var newLives = state.lives
             var showCeleb = false
             var celebScore = 0
             
-            // Life bonus
-            if (newScore % LIFE_BONUS_INTERVAL == 0 && newScore > lastLifeBonus) {
-                lastLifeBonus = newScore
-                if (newLives < NORMAL_MAX_LIVES) {
-                    newLives++
-                    sendEffect(GameEffect.VibrateSuccess)
+            if (isStable) {
+                newScore++
+                
+
+                if (newScore % LIFE_BONUS_INTERVAL == 0 && newScore > lastLifeBonus) {
+                    lastLifeBonus = newScore
+                    if (newLives < NORMAL_MAX_LIVES) {
+                         newLives++
+                         sendEffect(GameEffect.VibrateSuccess)
+                    }
+                }
+                
+                if (newScore % 10 == 0 && newScore > lastMilestone) {
+                    lastMilestone = newScore
+                    celebScore = newScore
+                    showCeleb = true
                 }
             }
             
-            // Milestone celebration
-            if (newScore % 10 == 0 && newScore > lastMilestone) {
-                lastMilestone = newScore
-                celebScore = newScore
-                showCeleb = true
-            }
-            
-            // Calculate next block width (matches new stacked block)
-            val nextWidth = if (isPerfect) {
-                calculateBlockWidth(screenWidth * 0.5f, newScore)
-            } else {
-                newBlockWidth
-            }
+
+            val baseWidth = screenWidth * 0.5f
+            val newWidth = calculateBlockWidth(baseWidth, newScore)
             val newSpeed = current.moveSpeed + speedIncrement
             
+
             _gameState.update { 
                 it.copy(
                     score = newScore,
                     lives = newLives,
-                    stack = it.stack + newBlock,
-                    fallingPieces = newFallingPieces,
+                    stack = it.stack + finalBlock,
                     showMilestoneCelebration = showCeleb,
                     celebrationScore = celebScore
                 )
             }
             
+
             _currentBlockState.update {
                 it.copy(
                     isFalling = false,
                     y = 250f,
-                    width = nextWidth,
+                    width = newWidth,
                     moveSpeed = newSpeed,
-                    x = if (newScore % 2 == 0) -nextWidth else screenWidth,
+                    x = if (newScore % 2 == 0) -newWidth else screenWidth,
                     moveDirection = if (newScore % 2 == 0) 1f else -1f
                 )
             }
         }
+    }
+    
+    private fun checkBlockStability(top: Block, bottom: Block): Boolean {
+        val overlapLeft = max(top.rect.left, bottom.rect.left)
+        val overlapRight = min(top.rect.right, bottom.rect.right)
+        val overlapWidth = overlapRight - overlapLeft
+        
+        if (overlapWidth <= 0) return false
+        
+        val overhangLeft = max(0f, bottom.rect.left - top.rect.left)
+        val overhangRight = max(0f, top.rect.right - bottom.rect.right)
+        val maxOverhang = max(overhangLeft, overhangRight)
+        
+        return maxOverhang < top.rect.width * STABILITY_THRESHOLD
+    }
+    
+    private fun checkTowerBalance(stack: List<Block>): Boolean {
+        if (stack.size < 2) return true
+        
+        var totalMass = 0f
+        var weightedX = 0f
+        
+        stack.forEach { block ->
+            val mass = block.rect.width
+            totalMass += mass
+            weightedX += block.rect.center.x * mass
+        }
+        
+        val centerOfMass = weightedX / totalMass
+        val baseBlock = stack.first()
+        
+        return centerOfMass >= baseBlock.rect.left && centerOfMass <= baseBlock.rect.right
     }
     
     private fun calculateBlockWidth(baseWidth: Float, currentScore: Int): Float {
@@ -487,7 +501,7 @@ class GameViewModel : ViewModel() {
     }
     
     private fun spawnParticles(rect: Rect, color: Color, count: Int) {
-        val newParticles = List(count) {
+         val newParticles = List(count) {
             Particle(
                 x = rect.left + Random.nextFloat() * rect.width,
                 y = rect.top + Random.nextFloat() * rect.height,
@@ -512,10 +526,10 @@ class GameViewModel : ViewModel() {
     }
     
     fun showAdOverlay() {
-        _gameState.update { it.copy(showAdOverlay = true) }
+         _gameState.update { it.copy(showAdOverlay = true) }
     }
     
     fun hideAdOverlay() {
-        _gameState.update { it.copy(showAdOverlay = false) }
+         _gameState.update { it.copy(showAdOverlay = false) }
     }
 }
