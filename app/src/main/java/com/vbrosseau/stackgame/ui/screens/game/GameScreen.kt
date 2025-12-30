@@ -227,6 +227,25 @@ fun StackGame(
                     drawText(context.getString(com.vbrosseau.stackgame.R.string.tap_to_restart), size.width / 2, size.height / 3 + 20f, subPaint)
                 }
             }
+            
+            // Render floating texts
+            gameState.floatingTexts.forEach { ft ->
+                drawContext.canvas.nativeCanvas.apply {
+                    val textPaint = android.graphics.Paint().apply {
+                        color = android.graphics.Color.argb(
+                            (ft.life * 255).toInt(),
+                            ((ft.color.red * 255).toInt()),
+                            ((ft.color.green * 255).toInt()),
+                            ((ft.color.blue * 255).toInt())
+                        )
+                        textSize = 40f * ft.scale
+                        textAlign = android.graphics.Paint.Align.CENTER
+                        isFakeBoldText = true
+                        setShadowLayer(4f, 2f, 2f, android.graphics.Color.BLACK)
+                    }
+                    drawText(ft.text, ft.x, ft.y + gameState.cameraY, textPaint)
+                }
+            }
         }
         
 
@@ -260,6 +279,22 @@ fun StackGame(
                 fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
                 color = Color.White
             )
+            
+            // Show streak counter if streak >= 2
+            if (gameState.perfectStreak >= 2) {
+                Text(
+                    text = "🔥 x${gameState.perfectStreak}",
+                    fontSize = 20.sp,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                    color = Color(0xFFFFD700)
+                )
+            } else {
+                // Placeholder for layout consistency
+                Text(
+                    text = "",
+                    fontSize = 20.sp
+                )
+            }
             
             Text(
                 text = "❤ ".repeat(gameState.lives.coerceAtLeast(0)).trim(),

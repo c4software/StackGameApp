@@ -54,7 +54,7 @@ class GameViewModel : ViewModel() {
         const val PERFECT_TOLERANCE_DP = 8f
         const val BASE_GRAVITY = 0.4f
         const val BASE_FALL_SPEED = 15f
-        const val STABILITY_THRESHOLD = 0.35f
+        const val STABILITY_THRESHOLD = 0.55f  // Blocks tolerate 55% overhang before becoming unstable
         const val MAX_ANGULAR_VELOCITY = 5f
         const val BASE_PHYSICS_GRAVITY = 0.6f
         const val ANGULAR_DAMPING = 0.98f
@@ -136,7 +136,8 @@ class GameViewModel : ViewModel() {
             score = 0,
             lives = INITIAL_LIVES,
             stack = listOf(initialBlock),
-            isGameOver = false
+            isGameOver = false,
+            perfectStreak = 0
         )
         
         _currentBlockState.value = CurrentBlockState(
@@ -280,7 +281,20 @@ class GameViewModel : ViewModel() {
              p.life -= 0.02f
              if (p.life > 0) p else null
          }
-         return state.copy(particles = living)
+         
+         // Update floating texts (move up and fade out)
+         val livingTexts = state.floatingTexts.mapNotNull { ft ->
+             val newLife = ft.life - 0.025f
+             if (newLife > 0) {
+                 ft.copy(
+                     y = ft.y - 3f,  // Move up
+                     life = newLife,
+                     scale = 1f + (1f - newLife) * 0.3f  // Grow slightly as it fades
+                 )
+             } else null
+         }
+         
+         return state.copy(particles = living, floatingTexts = livingTexts)
     }
 
     private fun calculatePhysics(state: GameState): GameState {
@@ -400,11 +414,43 @@ class GameViewModel : ViewModel() {
             
             val finalBlock = newBlock.copy(isStable = isStable, angularVelocity = angularVel)
             
-
+            // Perfect streak system
+            val currentStreak = state.perfectStreak
+            val newStreak: Int
+            val floatingTextsList = mutableListOf<FloatingText>()
+            
             if (isPerfect) {
-                spawnParticles(finalBlock.rect, Color.White, 15)
-            } else if (!isStable) {
-                spawnParticles(finalBlock.rect, newColor.copy(alpha = 0.3f), 8)
+                newStreak = currentStreak + 1
+                
+                // Spawn particles based on streak
+                if (newStreak >= 3) {
+                    // Golden particles for combo
+                    spawnParticles(finalBlock.rect, Color(0xFFFFD700), 25)
+                } else {
+                    spawnParticles(finalBlock.rect, Color.White, 15)
+                }
+                
+                // Create floating text based on streak
+                val textY = finalBlock.rect.top - 30f
+                val textX = finalBlock.rect.center.x
+                
+                when {
+                    newStreak >= 5 -> {
+                        floatingTextsList.add(FloatingText("🔥 x$newStreak COMBO! 🔥", textX, textY, Color(0xFFFFD700)))
+                    }
+                    newStreak >= 3 -> {
+                        floatingTextsList.add(FloatingText("x$newStreak COMBO!", textX, textY, Color(0xFFFFD700)))
+                    }
+                    else -> {
+                        floatingTextsList.add(FloatingText("PERFECT!", textX, textY, Color.White))
+                    }
+                }
+                
+            } else {
+                newStreak = 0  // Reset streak on non-perfect
+                if (!isStable) {
+                    spawnParticles(finalBlock.rect, newColor.copy(alpha = 0.3f), 8)
+                }
             }
             
             var newScore = score
@@ -415,26 +461,49 @@ class GameViewModel : ViewModel() {
             if (isStable) {
                 newScore++
                 
+                // Bonus points for streak
+                if (isPerfect && newStreak >= 3) {
+                    // Bonus score for maintaining streak
+                    newScore += (newStreak / 3)  // +1 bonus every 3 perfect
+                }
 
                 if (newScore % LIFE_BONUS_INTERVAL == 0 && newScore > lastLifeBonus) {
                     lastLifeBonus = newScore
                     if (newLives < NORMAL_MAX_LIVES) {
                          newLives++
                          sendEffect(GameEffect.VibrateSuccess)
+                         floatingTextsList.add(FloatingText("❤️ +1 VIE!", finalBlock.rect.center.x, finalBlock.rect.top - 60f, Color(0xFFFF5252)))
                     }
+                }
+                
+                // Bonus life at streak of 5
+                if (newStreak == 5 && newLives < NORMAL_MAX_LIVES) {
+                    newLives++
+                    floatingTextsList.add(FloatingText("🎁 BONUS VIE!", finalBlock.rect.center.x, finalBlock.rect.top - 90f, Color(0xFF4CAF50)))
+                    sendEffect(GameEffect.VibrateSuccess)
                 }
                 
                 if (newScore % 10 == 0 && newScore > lastMilestone) {
                     lastMilestone = newScore
-                    celebScore = newScore
-                    showCeleb = true
+                    // Use floating text for milestone instead of overlay
+                    floatingTextsList.add(FloatingText(
+                        "🎉 BRAVO $newScore! 🎉",
+                        finalBlock.rect.center.x,
+                        finalBlock.rect.top - 120f,
+                        Color(0xFF9C27B0)  // Purple color
+                    ))
+                    sendEffect(GameEffect.VibrateSuccess)
+                    spawnParticles(finalBlock.rect, Color(0xFF9C27B0), 30)  // Celebration particles
                 }
             }
             
+            // Calculate next block speed - slower if on a streak
+            val baseSpeedIncrement = speedIncrement
+            val streakSpeedReduction = if (newStreak >= 3) 0.8f else 1f  // 20% slower when on streak
 
             val baseWidth = screenWidth * 0.5f
             val newWidth = calculateBlockWidth(baseWidth, newScore)
-            val newSpeed = current.moveSpeed + speedIncrement
+            val newSpeed = current.moveSpeed + (baseSpeedIncrement * streakSpeedReduction)
             
 
             _gameState.update { 
@@ -443,7 +512,9 @@ class GameViewModel : ViewModel() {
                     lives = newLives,
                     stack = it.stack + finalBlock,
                     showMilestoneCelebration = showCeleb,
-                    celebrationScore = celebScore
+                    celebrationScore = celebScore,
+                    perfectStreak = newStreak,
+                    floatingTexts = it.floatingTexts + floatingTextsList
                 )
             }
             

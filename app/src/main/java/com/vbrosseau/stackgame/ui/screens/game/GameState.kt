@@ -10,7 +10,9 @@ data class GameState(
     val particles: List<Particle> = emptyList(),
     val showAdOverlay: Boolean = false,
     val showMilestoneCelebration: Boolean = false,
-    val celebrationScore: Int = 0
+    val celebrationScore: Int = 0,
+    val perfectStreak: Int = 0,
+    val floatingTexts: List<FloatingText> = emptyList()
 )
 
 data class GameSnapshot(
