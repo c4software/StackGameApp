@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.nativeCanvas
+import com.vbrosseau.stackgame.ui.screens.game.IsometricRenderer.drawIsometricBlock
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
@@ -133,6 +134,8 @@ fun StackGame(
             translate(left = offsetX, top = offsetY) {
                 translate(left = 0f, top = gameState.cameraY) {
 
+                    val screenCenterX = size.width / 2
+
                     gameState.stack.forEach { block ->
 
                         if (block.rotation != 0f) {
@@ -143,50 +146,26 @@ fun StackGame(
                             drawContext.canvas.rotate(block.rotation)
                             drawContext.canvas.translate(-centerX, -centerY)
                         }
-                        
 
-                        drawRect(
-                            color = block.color,
-                            topLeft = Offset(block.rect.left, block.rect.top),
-                            size = Size(block.rect.width, block.rect.height)
-                        )
-                        
-
-                        drawRect(
-                            color = Color.White.copy(alpha = 0.2f),
-                            topLeft = Offset(block.rect.left, block.rect.top),
-                            size = Size(block.rect.width, 10f)
-                        )
-                        
-
+                        // Draw isometric 3D block
                         val windowCount = (block.rect.width / 35f).toInt()
-                        if (windowCount > 0) {
-                            val windowHeight = viewModel.blockHeight * 0.5f
-                            val windowY = block.rect.top + (viewModel.blockHeight - windowHeight) / 2
-                            val totalGapsWidth = block.rect.width * 0.3f
-                            val gapWidth = totalGapsWidth / (windowCount + 1)
-                            val windowWidth = (block.rect.width - totalGapsWidth) / windowCount
-
-                            val windowColor = if (gameState.score > 25) Color.Yellow.copy(alpha = 0.6f) else Color.Black.copy(alpha = 0.15f)
-
-                            for (i in 0 until windowCount) {
-                                val windowX = block.rect.left + ((i + 1) * gapWidth) + (i * windowWidth)
-                                drawRect(
-                                    color = windowColor,
-                                    topLeft = Offset(windowX, windowY),
-                                    size = Size(windowWidth, windowHeight)
-                                )
-                            }
-                        }
+                        val windowColor = if (gameState.score > 25) 
+                            Color.Yellow.copy(alpha = 0.6f) 
+                        else 
+                            Color.Black.copy(alpha = 0.15f)
                         
-
-                        if (!block.isStable && !block.isFalling) {
-                             drawRect(
-                                color = Color.Red.copy(alpha = 0.15f),
-                                topLeft = Offset(block.rect.left, block.rect.top),
-                                size = Size(block.rect.width, block.rect.height)
-                            )
-                        }
+                        drawIsometricBlock(
+                            left = block.rect.left,
+                            top = block.rect.top,
+                            width = block.rect.width,
+                            height = block.rect.height,
+                            color = block.color,
+                            screenCenterX = screenCenterX,
+                            hasWindows = windowCount > 0,
+                            windowColor = windowColor,
+                            windowCount = windowCount,
+                            isUnstable = !block.isStable && !block.isFalling
+                        )
 
                         if (block.rotation != 0f) {
                             drawContext.canvas.restore()
@@ -194,13 +173,17 @@ fun StackGame(
                     }
                     
 
+                    // Ghost block preview (isometric 3D)
                     if (!gameState.isGameOver && !currentBlock.isFalling && gameState.stack.isNotEmpty() && user.hasGhostFeature()) {
                         val shadowAlpha = (0.3f - (gameState.score / 100f)).coerceIn(0f, 0.3f)
                         if (shadowAlpha > 0f) {
-                            drawRect(
+                            drawIsometricBlock(
+                                left = currentBlock.x,
+                                top = gameState.stack.last().rect.top - viewModel.blockHeight,
+                                width = currentBlock.width,
+                                height = viewModel.blockHeight,
                                 color = Color.Black.copy(alpha = shadowAlpha),
-                                topLeft = Offset(currentBlock.x, gameState.stack.last().rect.top - viewModel.blockHeight),
-                                size = Size(currentBlock.width, viewModel.blockHeight)
+                                screenCenterX = screenCenterX
                             )
                         }
                     }
@@ -217,11 +200,15 @@ fun StackGame(
                 
 
                 
+                // Current moving block (isometric 3D)
                 if (!gameState.isGameOver && gameState.stack.isNotEmpty()) {
-                    drawRect(
+                    drawIsometricBlock(
+                        left = currentBlock.x,
+                        top = (currentBlock.y).coerceAtLeast(70f),
+                        width = currentBlock.width,
+                        height = viewModel.blockHeight,
                         color = Color.Red.copy(alpha = 0.9f),
-                        topLeft = Offset(currentBlock.x, (currentBlock.y).coerceAtLeast(70f)),
-                        size = Size(currentBlock.width, viewModel.blockHeight)
+                        screenCenterX = size.width / 2
                     )
                 }
             }
