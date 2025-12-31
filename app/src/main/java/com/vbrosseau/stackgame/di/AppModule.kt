@@ -5,7 +5,7 @@ import com.vbrosseau.stackgame.data.UserPreferences
 import com.vbrosseau.stackgame.ui.MainViewModel
 import com.vbrosseau.stackgame.ui.screens.profile.ProfileViewModel
 import org.koin.android.ext.koin.androidContext
-import org.koin.androidx.viewmodel.dsl.viewModel
+import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 val appModule = module {
