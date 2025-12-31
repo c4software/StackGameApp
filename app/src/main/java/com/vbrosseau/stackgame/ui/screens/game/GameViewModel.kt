@@ -376,9 +376,31 @@ class GameViewModel : ViewModel() {
         val overlapWidth = overlapRight - overlapLeft
         
         if (overlapWidth <= 0) {
-
-            _gameState.update { it.copy(isGameOver = true, shakeTime = 15f) }
+            // Bloc raté complètement - perd une vie
+            val newLives = state.lives - 1
             sendEffect(GameEffect.VibrateFail)
+            
+            if (newLives <= 0) {
+                // Plus de vies - Game Over
+                _gameState.update { it.copy(isGameOver = true, shakeTime = 15f, lives = 0) }
+            } else {
+                // Encore des vies - continue avec un nouveau bloc
+                _gameState.update { it.copy(lives = newLives, shakeTime = 10f) }
+                
+                // Prépare le prochain bloc
+                val baseWidth = screenWidth * 0.5f
+                val newWidth = calculateBlockWidth(baseWidth, state.score)
+                
+                _currentBlockState.update {
+                    it.copy(
+                        isFalling = false,
+                        y = 250f,
+                        width = newWidth,
+                        x = if (state.score % 2 == 0) -newWidth else screenWidth,
+                        moveDirection = if (state.score % 2 == 0) 1f else -1f
+                    )
+                }
+            }
         } else {
 
             val score = state.score
@@ -459,12 +481,30 @@ class GameViewModel : ViewModel() {
             var celebScore = 0
             
             if (isStable) {
-                newScore++
+                // Calcul du multiplicateur basé sur le streak
+                // x1 par défaut, +0.5x par perfect consécutif à partir de 2, max x5
+                val multiplier = when {
+                    newStreak >= 8 -> 5.0f   // x5 max
+                    newStreak >= 6 -> 4.0f   // x4
+                    newStreak >= 4 -> 3.0f   // x3
+                    newStreak >= 2 -> 2.0f   // x2
+                    newStreak == 1 -> 1.5f   // x1.5 pour le premier perfect
+                    else -> 1.0f             // x1 par défaut
+                }
                 
-                // Bonus points for streak
-                if (isPerfect && newStreak >= 3) {
-                    // Bonus score for maintaining streak
-                    newScore += (newStreak / 3)  // +1 bonus every 3 perfect
+                // Score de base + multiplicateur
+                val basePoints = 1
+                val earnedPoints = (basePoints * multiplier).toInt().coerceAtLeast(1)
+                newScore += earnedPoints
+                
+                // Afficher les points gagnés si multiplicateur actif
+                if (isPerfect && multiplier > 1.0f) {
+                    floatingTextsList.add(FloatingText(
+                        "+$earnedPoints (x${multiplier.toInt()})",
+                        finalBlock.rect.center.x + 60f,
+                        finalBlock.rect.top - 10f,
+                        Color(0xFFFFD700)
+                    ))
                 }
 
                 if (newScore % LIFE_BONUS_INTERVAL == 0 && newScore > lastLifeBonus) {
