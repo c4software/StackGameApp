@@ -12,7 +12,9 @@ data class GameState(
     val showMilestoneCelebration: Boolean = false,
     val celebrationScore: Int = 0,
     val perfectStreak: Int = 0,
-    val floatingTexts: List<FloatingText> = emptyList()
+    val floatingTexts: List<FloatingText> = emptyList(),
+    val zoomScale: Float = 1f,
+    val isZoomingOut: Boolean = false
 )
 
 data class GameSnapshot(

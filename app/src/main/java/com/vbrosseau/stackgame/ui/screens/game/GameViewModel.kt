@@ -66,7 +66,12 @@ class GameViewModel : ViewModel() {
         const val LIFE_BONUS_INTERVAL = 20
         const val DIFFICULTY_INTERVAL = 10
         const val SIZE_REDUCTION_FACTOR = 0.90f
-        const val MIN_BLOCK_WIDTH_RATIO = 0.25f 
+        const val MIN_BLOCK_WIDTH_RATIO = 0.25f
+        
+        // Zoom-out animation constants
+        const val ZOOM_OUT_SPEED = 0.02f
+        const val MIN_ZOOM_SCALE = 0.05f
+        const val ZOOM_PADDING = 50f
     }
     
 
@@ -137,7 +142,9 @@ class GameViewModel : ViewModel() {
             lives = INITIAL_LIVES,
             stack = listOf(initialBlock),
             isGameOver = false,
-            perfectStreak = 0
+            perfectStreak = 0,
+            zoomScale = 1f,
+            isZoomingOut = false
         )
         
         _currentBlockState.value = CurrentBlockState(
@@ -226,6 +233,11 @@ class GameViewModel : ViewModel() {
                  nextState = calculateCamera(screenHeight, nextState)
             }
             
+            // Calculate end-game zoom-out animation
+            if (nextState.isGameOver && nextState.stack.isNotEmpty()) {
+                nextState = calculateEndGameZoom(nextState)
+            }
+            
             nextState
         }
 
@@ -271,6 +283,42 @@ class GameViewModel : ViewModel() {
         
         val newCamY = camY + (clampedTargetCamY - camY) * 0.1f
         return state.copy(cameraY = newCamY)
+    }
+    
+    private fun calculateEndGameZoom(state: GameState): GameState {
+        if (state.stack.isEmpty()) return state
+        
+        // Calculate tower height
+        val bottomBlock = state.stack.first()
+        val topBlock = state.stack.last()
+        val towerHeight = bottomBlock.rect.bottom - topBlock.rect.top
+        
+        // Calculate target zoom to fit entire tower on screen with padding
+        val availableHeight = screenHeight - ZOOM_PADDING * 2
+        val targetZoom = if (towerHeight > availableHeight) {
+            (availableHeight / towerHeight).coerceIn(MIN_ZOOM_SCALE, 1f)
+        } else {
+            1f
+        }
+        
+        // Smoothly animate zoom
+        val currentZoom = state.zoomScale
+        val newZoom = if (currentZoom > targetZoom) {
+            (currentZoom - ZOOM_OUT_SPEED).coerceAtLeast(targetZoom)
+        } else {
+            currentZoom
+        }
+        
+        // Adjust camera to center the tower when zoomed out
+        val towerCenterY = (bottomBlock.rect.bottom + topBlock.rect.top) / 2
+        val targetCamY = screenHeight / 2 - towerCenterY
+        val newCamY = state.cameraY + (targetCamY - state.cameraY) * 0.05f
+        
+        return state.copy(
+            zoomScale = newZoom,
+            isZoomingOut = newZoom < 1f,
+            cameraY = newCamY
+        )
     }
     
     private fun calculateParticles(state: GameState): GameState {

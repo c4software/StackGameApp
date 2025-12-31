@@ -14,6 +14,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.nativeCanvas
 import com.vbrosseau.stackgame.ui.screens.game.IsometricRenderer.drawIsometricBlock
@@ -132,9 +133,14 @@ fun StackGame(
             val offsetY = if (shakeTime > 0) (Random.nextFloat() - 0.5f) * shakeTime * 2 else 0f
 
             translate(left = offsetX, top = offsetY) {
-                translate(left = 0f, top = gameState.cameraY) {
+                // Apply zoom-out scale transformation centered on screen
+                scale(
+                    scale = gameState.zoomScale,
+                    pivot = Offset(size.width / 2, size.height / 2)
+                ) {
+                    translate(left = 0f, top = gameState.cameraY) {
 
-                    val screenCenterX = size.width / 2
+                        val screenCenterX = size.width / 2
 
                     gameState.stack.forEach { block ->
 
@@ -211,6 +217,7 @@ fun StackGame(
                         screenCenterX = size.width / 2
                     )
                 }
+                } // Close scale block
             }
             
 
